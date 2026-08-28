@@ -1,0 +1,27 @@
+package com.se196693.mvc.dto.request;
+
+import com.se196693.mvc.enums.Role;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+@Data
+public class UserCreationRequest {
+    @NotBlank(message = "Username is required")
+    @Size(min = 8, max = 50, message = "Username must be between 8 and 50 character")
+    private String username;
+
+    @NotBlank(message = "Password is required")
+    @Size(min = 8, max = 50, message = "Password must be between 8 and 50 character")
+    private String password;
+
+    @NotBlank(message = "Email must be required")
+    @Email(message = "Email must be valid")
+    private String email;
+
+    @NotNull(message = "Role is required")
+    private Role role;
+
+}
