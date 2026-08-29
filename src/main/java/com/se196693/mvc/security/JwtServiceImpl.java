@@ -1,18 +1,21 @@
 package com.se196693.mvc.security;
 
-import com.se196693.mvc.entity.User;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
+import javax.crypto.SecretKey;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.se196693.mvc.entity.User;
+
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.Keys;
+
 @Service
-public class JwtServiceImpl implements JwtService{
+public class JwtServiceImpl implements JwtService {
 
     @Value("${jwt.secret}")
     private String secretkey;
@@ -20,7 +23,7 @@ public class JwtServiceImpl implements JwtService{
     @Value("${jwt.expiration}")
     private long expiration;
 
-    private SecretKey getSigninKey(){
+    private SecretKey getSigninKey() {
         return Keys.hmacShaKeyFor(secretkey.getBytes(StandardCharsets.UTF_8));
     }
 
@@ -58,7 +61,7 @@ public class JwtServiceImpl implements JwtService{
                 .getPayload();
     }
 
-    private boolean isTokenExpired(String token){
+    private boolean isTokenExpired(String token) {
         return getClaims(token)
                 .getExpiration()
                 .before(new Date());
