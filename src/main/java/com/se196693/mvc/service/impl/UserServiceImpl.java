@@ -1,8 +1,6 @@
 package com.se196693.mvc.service.impl;
 
-import com.se196693.mvc.dto.request.RegisterRequest;
-import com.se196693.mvc.dto.request.UserCreationRequest;
-import com.se196693.mvc.dto.request.UserRequest;
+import com.se196693.mvc.dto.request.*;
 import com.se196693.mvc.dto.response.UserResponse;
 import com.se196693.mvc.entity.User;
 import com.se196693.mvc.enums.Role;
@@ -82,6 +80,25 @@ public class UserServiceImpl implements UserService {
         }
         return foundUser.stream().map(this::convertToResponse).toList();
     }
+
+    @Override
+    public <T extends BaseUpdateUserRequest> UserResponse updateUser(Long id, T request) {
+        User user = userRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("User not found"));
+        request.applyUpdateTo(user);
+        userRepository.save(user);
+        return convertToResponse(user);
+    }
+
+    @Override
+    public <T extends BaseUpdateUserRequest> UserResponse updateUser(String username, T request) {
+        User user = userRepository.findByUsername(username).orElseThrow(
+                () -> new ResourceNotFoundException("User not found"));
+        request.applyUpdateTo(user);
+        userRepository.save(user);
+        return convertToResponse(user);
+    }
+
 
     public UserResponse convertToResponse(User user){
         return new UserResponse(user.getId(), user.getFullName(), user.getUsername(), user.getEmail(), user.getRole(), user.getStatus());
