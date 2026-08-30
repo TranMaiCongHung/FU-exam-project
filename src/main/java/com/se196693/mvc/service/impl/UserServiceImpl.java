@@ -1,5 +1,7 @@
 package com.se196693.mvc.service.impl;
 
+import com.se196693.mvc.dto.request.RegisterRequest;
+import com.se196693.mvc.dto.response.UserResponse;
 import com.se196693.mvc.entity.User;
 import com.se196693.mvc.repository.UserRepository;
 import com.se196693.mvc.service.UserService;
@@ -23,7 +25,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User createUser(User user) {
+    public User createUser(RegisterRequest register) {
         if (userRepository.existsByUsername(user.getUsername())) {
             throw new RuntimeException("Username already exists");
         }
@@ -34,4 +36,6 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userRepository.save(user);
     }
+
+    public UserResponse convertToResponse()
 }
