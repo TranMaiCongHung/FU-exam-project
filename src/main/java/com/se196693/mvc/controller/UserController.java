@@ -22,22 +22,6 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponse> createUser(
            @Valid @RequestBody UserCreationRequest request){
-        User user = new User();
-
-        user.setUsername(request.getUsername());
-        user.setPassword(request.getPassword());
-        user.setEmail(request.getEmail());
-        user.setRole(request.getRole());
-
-        User savedUser = userService.createUser(user);
-
-        UserResponse response = new UserResponse(
-                savedUser.getId(),
-                savedUser.getUsername(),
-                savedUser.getEmail(),
-                savedUser.getRole()
-        );
-
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(userService.createUser(request));
     }
 }

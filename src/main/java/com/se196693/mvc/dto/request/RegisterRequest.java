@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class RegisterRequest {
+public class RegisterRequest implements UserRequest{
     @NotBlank(message = "Username is required")
     @Size(min = 3, max = 50, message = "Username must be between 8 and 50 character")
     private String username;
