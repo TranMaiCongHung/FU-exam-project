@@ -1,6 +1,7 @@
 package com.se196693.mvc.entity;
 
 import com.se196693.mvc.enums.Role;
+import com.se196693.mvc.enums.UserStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,6 +17,9 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
+    private String fullName;
+
     @Column(nullable = false, unique = true)
     private String username;
 
@@ -28,4 +32,8 @@ public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private UserStatus status;
 }

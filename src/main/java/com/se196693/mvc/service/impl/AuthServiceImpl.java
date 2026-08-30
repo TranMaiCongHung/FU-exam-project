@@ -3,6 +3,8 @@ package com.se196693.mvc.service.impl;
 import com.se196693.mvc.dto.request.LoginRequest;
 import com.se196693.mvc.dto.response.LoginResponse;
 import com.se196693.mvc.entity.User;
+import com.se196693.mvc.enums.UserStatus;
+import com.se196693.mvc.exception.AccountStatusException;
 import com.se196693.mvc.exception.InvalidCredentialsException;
 import com.se196693.mvc.exception.ResourceNotFoundException;
 import com.se196693.mvc.security.JwtService;
@@ -33,11 +35,21 @@ public class AuthServiceImpl implements AuthService {
             if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
                 throw new InvalidCredentialsException("Invalid username or password");
             }
+
+            if (user.getStatus() == UserStatus.INACTIVE){
+                throw new AccountStatusException("Account is inactive.");
+            }
+
+            if (user.getStatus().equals(UserStatus.BLOCKED)){
+                throw new AccountStatusException("Account is blocked");
+            }
+
             String token = jwtService.generateToken(user);
             return new LoginResponse(
                     token,
                     user.getUsername(),
-                    user.getRole()
+                    user.getRole(),
+                    user.getStatus()
             );
     }
 }
