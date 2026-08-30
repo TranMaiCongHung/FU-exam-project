@@ -1,12 +1,14 @@
 package com.se196693.mvc.controller;
 
 import com.se196693.mvc.dto.request.UserCreationRequest;
+import com.se196693.mvc.dto.response.ApiResponse;
 import com.se196693.mvc.dto.response.UserResponse;
 import com.se196693.mvc.entity.User;
 import com.se196693.mvc.service.UserService;
 import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -24,29 +26,51 @@ public class UserController {
 
     @PreAuthorize("hasRole('ADMIN')")//SC, phân quyền trước khi method dc thực thi, cần khai báo @EnableMehthodSecutiry
     @PostMapping("/add")
-    public ResponseEntity<UserResponse> createUser(
+    public ResponseEntity<ApiResponse<UserResponse>> createUser(
            @Valid @RequestBody UserCreationRequest request){
-        return ResponseEntity.ok(userService.createUser(request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.created(
+                        "User registered successfully",
+                        userService.createUser(request))
+        );
     }
 
     @GetMapping
-    public ResponseEntity<List<UserResponse>> listUsers(){
-        return ResponseEntity.ok(userService.listUsers());
+    public ResponseEntity<ApiResponse<List<UserResponse>>> listUsers(){
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Listed users successfully",
+                        userService.listUsers())
+        );
     }
 
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> getUser(@PathVariable Long id){
-        return ResponseEntity.ok(userService.getUser(id));
+    public ResponseEntity<ApiResponse<UserResponse>> getUser(@PathVariable Long id){
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Fetched user successfully",
+                        userService.getUser(id))
+        );
+
     }
 
     @GetMapping("/me")
-    public ResponseEntity<UserResponse> viewMyProfile(Authentication authentication){
-        return ResponseEntity.ok(userService.viewMyProfile(authentication.getName()));
+    public ResponseEntity<ApiResponse<UserResponse>> viewMyProfile(Authentication authentication){
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Fetched profile successfully",
+                        userService.viewMyProfile(authentication.getName()))
+        );
     }
 
     @GetMapping("/search")
-    public ResponseEntity<List<UserResponse>> searchUser(@RequestParam(required = false) String keyword){
-        return ResponseEntity.ok(userService.searchUsers(keyword));
+    public ResponseEntity<ApiResponse<List<UserResponse>>> searchUser(@RequestParam(required = false) String keyword){
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "searched successfully",
+                        userService.searchUsers(keyword)
+                )
+        );
     }
 }
