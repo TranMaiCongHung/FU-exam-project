@@ -50,7 +50,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                             "ROLE_" + user.getRole().name()
                     );
                     var authentication = new UsernamePasswordAuthenticationToken(
-                            user,
+                            user.getUsername(),
                             null,
                             List.of(authority)
                     );
