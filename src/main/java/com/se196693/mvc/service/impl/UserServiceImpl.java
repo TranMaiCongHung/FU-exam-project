@@ -6,6 +6,9 @@ import com.se196693.mvc.dto.request.UserRequest;
 import com.se196693.mvc.dto.response.UserResponse;
 import com.se196693.mvc.entity.User;
 import com.se196693.mvc.enums.Role;
+import com.se196693.mvc.exception.DuplicateResourceException;
+import com.se196693.mvc.exception.InvalidCredentialsException;
+import com.se196693.mvc.exception.ResourceNotFoundException;
 import com.se196693.mvc.repository.UserRepository;
 import com.se196693.mvc.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -25,17 +28,17 @@ public class UserServiceImpl implements UserService {
     @Override
     public User findByUsername(String username) {
         return userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
 
     @Override
     public <T extends UserRequest> UserResponse createUser(T register) {
         User user = convertToEntity(register);
         if (userRepository.existsByUsername(user.getUsername())) {
-            throw new RuntimeException("Username already exists");
+            throw new DuplicateResourceException("Username already exists");
         }
         if (userRepository.existsByEmail(user.getEmail())) {
-            throw new RuntimeException("Email already exists");
+            throw new DuplicateResourceException("Email already exists");
         }
         User savedUser = userRepository.save(user);
         return convertToResponse(savedUser);
