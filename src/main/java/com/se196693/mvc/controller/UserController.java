@@ -74,6 +74,7 @@ public class UserController {
         );
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/search")
     public ResponseEntity<ApiResponse<List<UserResponse>>> searchUser(@RequestParam(required = false) String keyword) {
         return ResponseEntity.ok(
