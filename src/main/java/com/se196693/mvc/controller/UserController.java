@@ -44,6 +44,7 @@ public class UserController {
         );
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<ApiResponse<List<UserResponse>>> listUsers() {
         return ResponseEntity.ok(
