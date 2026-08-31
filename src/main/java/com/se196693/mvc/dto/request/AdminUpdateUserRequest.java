@@ -3,6 +3,12 @@ package com.se196693.mvc.dto.request;
 import com.se196693.mvc.entity.User;
 import com.se196693.mvc.enums.Role;
 import com.se196693.mvc.enums.UserStatus;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,10 +17,18 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class AdminUpdateUserRequest implements  BaseUpdateUserRequest {
-    private String username;
+
     private String fullName;
+
+    @Size(min = 8, max = 50, message = "Username must be between 8 and 50 character")
+    private String username;
+
+    @Email(message = "Email must be valid")
     private String email;
+
     private Role role;
+
+    @Enumerated(EnumType.STRING)
     private UserStatus status;
 
     @Override

@@ -87,6 +87,7 @@ public class UserController {
     @PatchMapping("/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> updateInfoByAdmin(
             @PathVariable Long id,
+            @Valid
             @RequestBody  AdminUpdateUserRequest request) {
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -99,6 +100,7 @@ public class UserController {
      @PatchMapping("/me")
     public ResponseEntity<ApiResponse<UserResponse>> updateMyProfile(
             Authentication authentication,
+            @Valid
             @RequestBody UserProfileUpdateRequest request) {
         return ResponseEntity.ok(
                 ApiResponse.success(
