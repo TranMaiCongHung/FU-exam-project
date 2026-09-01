@@ -27,14 +27,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
 
     @PreAuthorize("hasRole('ADMIN')")//SC, phân quyền trước khi method dc thực thi, cần khai báo @EnableMehthodSecutiry
-    @PostMapping("/add")
+    @PostMapping("/admin/users/add")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
             @Valid @RequestBody UserCreationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(
@@ -45,7 +45,7 @@ public class UserController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping
+    @GetMapping("/admin/users")
     public ResponseEntity<ApiResponse<List<UserResponse>>> listUsers() {
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -55,7 +55,7 @@ public class UserController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/{id}")
+    @GetMapping("/admin/users/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> getUser(@PathVariable Long id) {
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -75,7 +75,7 @@ public class UserController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/search")
+    @GetMapping("/admin/users/search")
     public ResponseEntity<ApiResponse<List<UserResponse>>> searchUser(@RequestParam(required = false) String keyword) {
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -86,7 +86,7 @@ public class UserController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PatchMapping("/{id}")
+    @PatchMapping("/admin/users/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> updateInfoByAdmin(
             @PathVariable Long id,
             @Valid

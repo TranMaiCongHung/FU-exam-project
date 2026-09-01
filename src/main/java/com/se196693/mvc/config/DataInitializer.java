@@ -1,5 +1,6 @@
 package com.se196693.mvc.config;
 
+import com.se196693.mvc.enums.AuthProvider;
 import com.se196693.mvc.enums.Role;
 import com.se196693.mvc.entity.User;
 import com.se196693.mvc.enums.Role;
@@ -31,6 +32,8 @@ public class DataInitializer {
                 admin.setEmail("admin@gmail.com");
                 admin.setRole(Role.ADMIN);
                 admin.setStatus(UserStatus.ACTIVE);
+                admin.setAuthProvider(AuthProvider.LOCAL);
+                admin.setProviderId(null);
 
                 userRepository.save(admin);
             }
@@ -44,6 +47,8 @@ public class DataInitializer {
                 user.setEmail("user@gmail.com");
                 user.setRole(Role.USER);
                 user.setStatus(UserStatus.ACTIVE);
+                user.setAuthProvider(AuthProvider.LOCAL);
+                user.setProviderId(null);
                 userRepository.save(user);
             }
         };
