@@ -33,7 +33,7 @@ public class AuthController {
     public ResponseEntity<ApiResponse<LoginResponse>> login(@RequestBody LoginRequest request){
         return ResponseEntity.ok(
                 ApiResponse.success(
-                        "Login successfully",
+                        "Logined successfully",
                         authService.login(request))
         );
     }

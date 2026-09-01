@@ -1,12 +1,11 @@
 package com.se196693.mvc.service;
 
-import com.se196693.mvc.dto.request.AdminUpdateUserRequest;
-import com.se196693.mvc.dto.request.BaseUpdateUserRequest;
-import com.se196693.mvc.dto.request.RegisterRequest;
-import com.se196693.mvc.dto.request.UserRequest;
+import com.se196693.mvc.dto.request.*;
+import com.se196693.mvc.dto.response.PageResponse;
 import com.se196693.mvc.dto.response.UserResponse;
 import com.se196693.mvc.entity.User;
 import com.se196693.mvc.enums.UserStatus;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.List;
@@ -18,13 +17,11 @@ public interface UserService {
 
     <T extends UserRequest> UserResponse createUser(T register);
 
-    List<UserResponse> listUsers();
+    PageResponse<UserResponse> listUsers(UserFilterRequest filter, Pageable pageable);
 
     UserResponse getUser(Long id);
 
     UserResponse viewMyProfile(String username);
-
-    List<UserResponse> searchUsers(String keyword);
 
     <T extends BaseUpdateUserRequest> UserResponse updateUser(Long id,T request);
     <T extends BaseUpdateUserRequest> UserResponse updateUser(String username, T request);
