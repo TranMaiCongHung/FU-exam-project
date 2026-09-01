@@ -11,7 +11,7 @@ public class RegisterRequest implements UserRequest{
     private String fullName;
 
     @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be between 8 and 50 character")
+    @Size(min = 8, max = 50, message = "Username must be between 8 and 50 character")
     private String username;
 
     @NotBlank(message = "Password is required")

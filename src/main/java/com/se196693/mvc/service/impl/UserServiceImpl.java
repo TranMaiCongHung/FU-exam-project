@@ -3,6 +3,7 @@ package com.se196693.mvc.service.impl;
 import com.se196693.mvc.dto.request.*;
 import com.se196693.mvc.dto.response.UserResponse;
 import com.se196693.mvc.entity.User;
+import com.se196693.mvc.enums.AuthProvider;
 import com.se196693.mvc.enums.Role;
 import com.se196693.mvc.enums.UserStatus;
 import com.se196693.mvc.exception.DuplicateResourceException;
@@ -13,6 +14,7 @@ import com.se196693.mvc.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.webmvc.autoconfigure.WebMvcProperties;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
@@ -71,11 +73,11 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserResponse> searchUsers(String keyword) {
-        if (keyword == null || keyword.trim().isBlank()){
+        if (keyword == null || keyword.trim().isBlank()) {
             return listUsers();
         }
-        List<User> foundUser = userRepository.findUserByUsernameOrFullNameContainingIgnoreCase(keyword.trim(),keyword.trim());
-        if (foundUser.isEmpty()){
+        List<User> foundUser = userRepository.findUserByUsernameOrFullNameContainingIgnoreCase(keyword.trim(), keyword.trim());
+        if (foundUser.isEmpty()) {
             throw new ResourceNotFoundException("No users found");
         }
         return foundUser.stream().map(this::convertToResponse).toList();
@@ -99,32 +101,98 @@ public class UserServiceImpl implements UserService {
         return convertToResponse(user);
     }
 
+    @Override
+    public User processGoogleUser(OAuth2User oauth2User) {
+        String googleId
+                = oauth2User.getAttribute("sub");
 
-    public UserResponse convertToResponse(User user){
+        String email
+                = oauth2User.getAttribute("email");
+
+        String fullName
+                = oauth2User.getAttribute("name");
+
+        // 1. Tìm Google account
+        Optional<User> existingUser
+                = userRepository.findByAuthProviderAndProviderId(
+                        AuthProvider.GOOGLE,
+                        googleId
+                );
+
+        if (existingUser.isPresent()) {
+            return existingUser.get();
+        }
+
+        // 2. Kiểm tra email đã tồn tại chưa
+        Optional<User> userByEmail
+                = userRepository.findByEmail(email);
+
+        if (userByEmail.isPresent()) {
+            throw new DuplicateResourceException(
+                    "Email is already registered with another authentication method"
+            );
+        }
+
+        // 3. Tạo user mới
+        Role userRole = ("mailhoctaptmch@gmail.com".equalsIgnoreCase(email) || "tranmaiconghung@gmail.com".equalsIgnoreCase(email))
+                ? Role.ADMIN
+                : Role.USER;
+        User user = User.builder()
+                .fullName(fullName)
+                .email(email)
+                .username(generateGoogleUsername(email))
+                .role(userRole)
+                .status(UserStatus.ACTIVE)
+                .authProvider(AuthProvider.GOOGLE)
+                .providerId(googleId)
+                .build();
+
+        return userRepository.save(user);
+    }
+
+    public UserResponse convertToResponse(User user) {
         return new UserResponse(user.getId(), user.getFullName(), user.getUsername(), user.getEmail(), user.getRole(), user.getStatus());
     }
 
     public <T extends UserRequest> User convertToEntity(T request) {
         if (request instanceof RegisterRequest reg) {
-            User user = new User();
-            user.setFullName(reg.getFullName());
-            user.setUsername(reg.getUsername());
-            user.setPassword(passwordEncoder.encode(reg.getPassword()));
-            user.setEmail(reg.getEmail());
-            user.setRole(Role.USER);
-            user.setStatus(UserStatus.ACTIVE);
-            return user;
+            return User.builder()
+                    .fullName(reg.getFullName())
+                    .username(reg.getUsername())
+                    .password(passwordEncoder.encode(reg.getPassword()))
+                    .email(reg.getEmail())
+                    .role(Role.USER)
+                    .status(UserStatus.ACTIVE)
+                    .authProvider(AuthProvider.LOCAL)
+                    .build();
         }
         if (request instanceof UserCreationRequest reg) {
-            User user = new User();
-            user.setFullName(reg.getFullName());
-            user.setUsername(reg.getUsername());
-            user.setPassword(passwordEncoder.encode(reg.getPassword()));
-            user.setEmail(reg.getEmail());
-            user.setRole(reg.getRole());
-            user.setStatus(UserStatus.INACTIVE);
-            return user;
+            return User.builder()
+                    .fullName(reg.getFullName())
+                    .username(reg.getUsername())
+                    .password(passwordEncoder.encode(reg.getPassword()))
+                    .email(reg.getEmail())
+                    .role(reg.getRole())
+                    .status(UserStatus.INACTIVE)
+                    .authProvider(AuthProvider.LOCAL)
+                    .build();
         }
         throw new IllegalArgumentException("Unsupported request DTO: " + request.getClass().getName());
+    }
+
+    private String generateGoogleUsername(String email) {
+
+        String baseUsername
+                = email.substring(0, email.indexOf("@"));
+
+        String username = baseUsername;
+        int counter = 1;
+
+        while (userRepository.existsByUsername(username)) {
+            username = baseUsername + counter;
+            counter++;
+        }
+
+        return username;
     }
 }

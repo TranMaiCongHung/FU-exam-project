@@ -2,6 +2,7 @@ package com.se196693.mvc.repository;
 
 import com.se196693.mvc.dto.response.UserResponse;
 import com.se196693.mvc.entity.User;
+import com.se196693.mvc.enums.AuthProvider;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -17,4 +18,12 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
 
     List<User> findUserByUsernameOrFullNameContainingIgnoreCase(String username, String fullName);
+
+    Optional<User> findByEmail(String email);
+
+    Optional<User> findByAuthProviderAndProviderId(
+            AuthProvider provider,
+            String providerId
+    );
+
 }
