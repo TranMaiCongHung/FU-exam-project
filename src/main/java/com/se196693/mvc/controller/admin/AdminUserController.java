@@ -1,4 +1,4 @@
-package com.se196693.mvc.controller;
+package com.se196693.mvc.controller.admin;
 
 import java.util.List;
 
@@ -24,14 +24,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/admin")
 @RequiredArgsConstructor
-public class UserController {
+@PreAuthorize("hasRole('ADMIN')")//SC, phân quyền trước khi method dc thực thi, cần khai báo @EnableMehthodSecutiry
+public class AdminUserController {
 
     private final UserService userService;
 
-    @PreAuthorize("hasRole('ADMIN')")//SC, phân quyền trước khi method dc thực thi, cần khai báo @EnableMehthodSecutiry
-    @PostMapping("/admin/users/add")
+    @PostMapping("/users/add")
     public ResponseEntity<ApiResponse<UserResponse>> createUser(
             @Valid @RequestBody UserCreationRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(
@@ -41,13 +41,12 @@ public class UserController {
         );
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/admin/users")
+    @GetMapping("/users")
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> listUsers(
             //@ParameterObject: chia object thanh tung truong nho hien thi tren swagger
             @ParameterObject @ModelAttribute UserFilterRequest filter,
             @ParameterObject Pageable pageable
-            ) {
+    ) {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "Listed users successfully",
@@ -55,8 +54,7 @@ public class UserController {
         );
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
-    @GetMapping("/admin/users/{id}")
+    @GetMapping("/users/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> getUser(@PathVariable Long id) {
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -66,17 +64,7 @@ public class UserController {
 
     }
 
-    @GetMapping("/me")
-    public ResponseEntity<ApiResponse<UserResponse>> viewMyProfile(Authentication authentication) {
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Fetched profile successfully",
-                        userService.viewMyProfile(authentication.getName()))
-        );
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @PatchMapping("/admin/users/{id}")
+    @PatchMapping("/users/{id}")
     public ResponseEntity<ApiResponse<UserResponse>> updateInfoByAdmin(
             @PathVariable Long id,
             @Valid
@@ -88,20 +76,4 @@ public class UserController {
                 )
         );
     }
-
-     @PatchMapping("/me")
-    public ResponseEntity<ApiResponse<UserResponse>> updateMyProfile(
-            Authentication authentication,
-            @Valid
-            @RequestBody UserProfileUpdateRequest request) {
-        return ResponseEntity.ok(
-                ApiResponse.success(
-                        "Updated profile successfully",
-                        // Gọi hàm updateUser overload mới tạo ở trên
-                        userService.updateUser(authentication.getName(), request)
-                )
-        );
-    }
-
-
 }
