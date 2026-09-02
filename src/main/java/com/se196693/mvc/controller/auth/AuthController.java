@@ -1,12 +1,10 @@
-package com.se196693.mvc.controller;
+package com.se196693.mvc.controller.auth;
 
 import com.se196693.mvc.dto.request.LoginRequest;
 import com.se196693.mvc.dto.request.RegisterRequest;
 import com.se196693.mvc.dto.response.ApiResponse;
 import com.se196693.mvc.dto.response.LoginResponse;
 import com.se196693.mvc.dto.response.UserResponse;
-import com.se196693.mvc.entity.User;
-import com.se196693.mvc.enums.Role;
 import com.se196693.mvc.service.AuthService;
 import com.se196693.mvc.service.UserService;
 import jakarta.validation.Valid;
