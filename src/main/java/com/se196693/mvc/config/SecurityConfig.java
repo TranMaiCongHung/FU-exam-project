@@ -3,8 +3,10 @@ package com.se196693.mvc.config;
 import com.se196693.mvc.security.JwtAuthenticationFilter;
 import com.se196693.mvc.security.OAuth2AuthenticationSuccessHandler;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -13,7 +15,9 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.servlet.HandlerExceptionResolver;
 
 @Configuration
 @EnableWebSecurity
@@ -25,6 +29,8 @@ public class SecurityConfig {
 
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
+    @Qualifier("handlerExceptionResolver")
+    private final HandlerExceptionResolver handlerExceptionResolver;
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -41,6 +47,11 @@ public class SecurityConfig {
                         ).permitAll()
 //                        .requestMatchers("/api/**").permitAll()
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            handlerExceptionResolver.resolveException(request, response, null, authException);
+                        })
                 )
                 //mở endpoint /oauth2/authorization/google
                 .oauth2Login(oauth2 -> oauth2
