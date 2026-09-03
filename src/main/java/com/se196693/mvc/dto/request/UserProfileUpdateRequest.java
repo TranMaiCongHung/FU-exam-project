@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class UserProfileUpdateRequest implements  BaseUpdateUserRequest {
+
+    @NotBlank(message = "Full name is required")
     private String fullName;
 
     @Override

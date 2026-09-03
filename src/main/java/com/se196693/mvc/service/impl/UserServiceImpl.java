@@ -19,10 +19,13 @@ import org.springframework.boot.webmvc.autoconfigure.WebMvcProperties;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
+import javax.management.relation.RoleStatus;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,7 +102,14 @@ public class UserServiceImpl implements UserService {
     public <T extends BaseUpdateUserRequest> UserResponse updateUser(Long id, T request) {
         User user = userRepository.findById(id).orElseThrow(
                 () -> new ResourceNotFoundException("User not found"));
+        Role oldRole = user.getRole();
         request.applyUpdateTo(user);
+        if (oldRole != user.getRole()) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && user.getUsername().equals(auth.getName())) {
+                throw new IllegalArgumentException("You cannot modify your own role");
+            }
+        }
         userRepository.save(user);
         return convertToResponse(user);
     }
@@ -108,7 +118,14 @@ public class UserServiceImpl implements UserService {
     public <T extends BaseUpdateUserRequest> UserResponse updateUser(String username, T request) {
         User user = userRepository.findByUsername(username).orElseThrow(
                 () -> new ResourceNotFoundException("User not found"));
+        Role oldRole = user.getRole();
         request.applyUpdateTo(user);
+        if (oldRole != user.getRole()) {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && user.getUsername().equals(auth.getName())) {
+                throw new IllegalArgumentException("You cannot modify your own role");
+            }
+        }
         userRepository.save(user);
         return convertToResponse(user);
     }
