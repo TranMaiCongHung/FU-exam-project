@@ -1,5 +1,6 @@
 package com.se196693.mvc.entity;
 
+import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Nationalized;
 
@@ -7,14 +8,8 @@ import com.se196693.mvc.enums.AuthProvider;
 import com.se196693.mvc.enums.Role;
 import com.se196693.mvc.enums.UserStatus;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Builder// Builder Pattern, giúp khoi tao object ro rang, kh cần quan tâm đến thứ tự truyền
@@ -56,4 +51,8 @@ public class User {
 
     @Column(name = "provider_id")
     private String providerId;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<Exam> exams = new ArrayList<>();
 }
