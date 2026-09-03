@@ -31,10 +31,10 @@ public class OAuth2AuthenticationSuccessHandler implements AuthenticationSuccess
             User user = userService.processGoogleUser(oauth2User);
             String token = jwtService.generateToken(user);
 
-            response.sendRedirect("http://localhost:3000/oauth2/success?token=" + token);
+            response.sendRedirect("http://localhost:5173/oauth2/success?token=" + token);
 
         } catch (DuplicateResourceException e) {
-            response.sendRedirect("http://localhost:3000/oauth2/error?message=email_is_used");
+            response.sendRedirect("http://localhost:5173/oauth2/error?message=email_is_used");
         }
     }
 }

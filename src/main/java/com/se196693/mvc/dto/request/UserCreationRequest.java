@@ -1,6 +1,7 @@
 package com.se196693.mvc.dto.request;
 
 import com.se196693.mvc.enums.Role;
+import com.se196693.mvc.enums.UserStatus;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -26,5 +27,8 @@ public class UserCreationRequest implements UserRequest{
 
     @NotNull(message = "Role is required")
     private Role role;
+
+    @NotNull(message = "Status is required")
+    private UserStatus status;
 
 }

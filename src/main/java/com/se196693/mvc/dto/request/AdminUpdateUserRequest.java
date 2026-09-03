@@ -18,17 +18,14 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AdminUpdateUserRequest implements  BaseUpdateUserRequest {
 
-    private String fullName;
-
+    @NotNull(message = "Role is required")
     private Role role;
 
-    @Enumerated(EnumType.STRING)
+    @NotNull(message = "Status is required")
     private UserStatus status;
 
     @Override
     public void applyUpdateTo(User user) {
-        if (this.fullName != null)
-            user.setFullName(this.fullName);
         if (this.role != null)
             user.setRole(this.role);
         if (this.status != null)
