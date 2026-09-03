@@ -21,6 +21,9 @@ public class R2StorageServiceImpl implements FileStorageService {
     @Value("${r2.bucket}")
     private String bucket;
 
+    @Value("${r2.public-url}")
+    private String publicUrl;
+
     @Override
     public String upload(MultipartFile file, String objectKey) {
         try {
@@ -45,7 +48,7 @@ public class R2StorageServiceImpl implements FileStorageService {
                     )
             );
 
-            return objectKey;
+            return publicUrl.replaceAll("/+$", "") + "/" + objectKey;
 
         } catch (IOException e) {
             throw new RuntimeException("Failed to upload file", e);
