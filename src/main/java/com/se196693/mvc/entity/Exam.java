@@ -1,5 +1,6 @@
 package com.se196693.mvc.entity;
 
+import com.se196693.mvc.enums.ExamType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -36,6 +37,13 @@ public class Exam {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ExamType examType;
+
+    @Column(nullable = false)
+    private String semesterCode;
+
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id")
     private User user;
@@ -43,4 +51,8 @@ public class Exam {
     @Builder.Default
     @OneToMany(mappedBy = "exam" , cascade = CascadeType.ALL)
     private List<Question> questions = new ArrayList<>();
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subject_id")
+    private Subject subject;
 }
