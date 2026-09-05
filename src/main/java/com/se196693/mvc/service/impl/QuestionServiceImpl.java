@@ -56,12 +56,10 @@ public class QuestionServiceImpl implements QuestionService {
                 + UUID.randomUUID()
                 + "."
                 + extension;
-        String imageUrl = fileStorageService.upload(image, objectKey);
 
         Question savedQuestion = questionRepository.save(
                 Question.builder()
                         .questionNumber(request.getQuestionNumber())
-                        .imageUrl(imageUrl)
                         .objectKey(objectKey)
                         .exam(exam)
                         .build()
@@ -85,7 +83,6 @@ public class QuestionServiceImpl implements QuestionService {
     private QuestionResponse convertToQuestion(Question question){
         return QuestionResponse.builder()
                 .id(question.getId())
-                .imageUrl(question.getImageUrl())
                 .questionNumber(question.getQuestionNumber())
                 .build();
     }

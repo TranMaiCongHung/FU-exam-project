@@ -1,6 +1,5 @@
 package com.se196693.mvc.dto.request;
 
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -12,7 +11,7 @@ import org.hibernate.validator.constraints.Range;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class AdminSubjectRequest {
+public class SubjectRequest {
     @NotBlank(message = "Subject code is required")
     @Pattern(
             regexp = "^[A-Z]{3}[0-9]{3}[a-z]?$",

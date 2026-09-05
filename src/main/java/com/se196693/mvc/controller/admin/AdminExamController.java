@@ -12,10 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/exams")
@@ -26,12 +25,17 @@ public class AdminExamController {
 
     @PostMapping
     public ResponseEntity<ApiResponse<ExamResponse>> createExam(
+            @PathVariable Long subjectId,
             @Valid @RequestBody ExamRequest request, Authentication authentication
             ) {
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ApiResponse.created(
                         "Exam created successfully",
-                        examService.createExam(request, authentication.getName()))
+                        examService.createExam(subjectId, request, authentication.getName()))
         );
     }
+
+//    @GetMapping("/{subjectId}")
+//    public ResponseEntity<ApiResponse<List<ExamResponse>>> getExams(@PathVariable Long subjectId,
+//                                                                    )
 }
