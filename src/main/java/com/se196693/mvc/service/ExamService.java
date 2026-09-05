@@ -8,7 +8,7 @@ import com.se196693.mvc.entity.User;
 import java.util.List;
 
 public interface ExamService {
-    ExamResponse createExam(ExamRequest request, String username);
+    ExamResponse createExam(Long subjectId,ExamRequest request, String username);
 
-
+    List<ExamResponse> getExams(Long subjectId);
 }
