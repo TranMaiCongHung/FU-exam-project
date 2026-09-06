@@ -11,6 +11,7 @@ import com.se196693.mvc.service.FileStorageService;
 import com.se196693.mvc.service.QuestionService;
 import com.se196693.mvc.utils.FileUtils;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -23,6 +24,10 @@ public class QuestionServiceImpl implements QuestionService {
     private final QuestionRepository questionRepository;
     private final ExamRepository examRepository;
     private final FileStorageService fileStorageService;
+
+    @Value("${r2.public-url}")
+    private String publicUrl;
+
     @Override
     public QuestionResponse addQuestion(Long examId, QuestionRequest request) {
         Exam exam = examRepository.findById(examId).orElseThrow(
@@ -57,11 +62,14 @@ public class QuestionServiceImpl implements QuestionService {
                 + "."
                 + extension;
 
+        fileStorageService.upload(image, objectKey);
+
         Question savedQuestion = questionRepository.save(
                 Question.builder()
                         .questionNumber(request.getQuestionNumber())
                         .objectKey(objectKey)
                         .exam(exam)
+                        .questionType(request.getQuestionType())
                         .build()
         );
         return convertToQuestion(savedQuestion);
@@ -84,6 +92,8 @@ public class QuestionServiceImpl implements QuestionService {
         return QuestionResponse.builder()
                 .id(question.getId())
                 .questionNumber(question.getQuestionNumber())
+                .imageUrl(publicUrl + "/" + question.getObjectKey())
+                .questionType(question.getQuestionType())
                 .build();
     }
 }

@@ -23,4 +23,5 @@ public class ExamRequest {
             message = "Semester code must be formatted SP/SU/FA + 2 digits of year (e.g: SU26)"
     )
     private String semesterCode;
+
 }

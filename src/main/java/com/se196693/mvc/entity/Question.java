@@ -23,9 +23,6 @@ public class Question {
     private Integer questionNumber;
 
     @Column(nullable = false)
-    private String imageUrl;
-
-    @Column(nullable = false)
     private String objectKey;
 
     @Enumerated(EnumType.STRING)
