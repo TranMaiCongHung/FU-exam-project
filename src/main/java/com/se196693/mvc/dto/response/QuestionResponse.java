@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 @Getter
 @Builder
 @AllArgsConstructor
@@ -15,4 +17,5 @@ public class QuestionResponse {
     Integer questionNumber;
     String imageUrl;
     QuestionType questionType;
+    private List<AnswerOptionResponse> answerOption;
 }
