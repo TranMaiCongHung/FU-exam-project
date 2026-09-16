@@ -2,11 +2,13 @@ package com.se196693.mvc.controller.admin;
 
 import com.se196693.mvc.dto.request.ExamFilterRequest;
 import com.se196693.mvc.dto.request.ExamRequest;
+import com.se196693.mvc.dto.request.QuestionRequest;
 import com.se196693.mvc.dto.response.ApiResponse;
 import com.se196693.mvc.dto.response.ExamResponse;
 import com.se196693.mvc.dto.response.PageResponse;
 import com.se196693.mvc.entity.User;
 import com.se196693.mvc.service.ExamService;
+import com.se196693.mvc.service.OcrService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
@@ -28,6 +30,8 @@ import java.util.List;
 @PreAuthorize("hasRole('ADMIN')")
 public class AdminExamController {
     private final ExamService examService;
+
+    private final OcrService ocrService;
 
     @PostMapping("/{subjectId}")
     public ResponseEntity<ApiResponse<ExamResponse>> createExam(
@@ -53,12 +57,16 @@ public class AdminExamController {
     }
 
     @PostMapping(value = "/{examId}/extract-ocr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<ApiResponse<String>> extractQuestionViaOcr(@PathVariable Long examId,
-                                                                     @RequestParam("file")MultipartFile document) {
+    public ResponseEntity<ApiResponse<List<QuestionRequest>>> extractQuestionViaOcr(
+            @PathVariable Long examId,
+            @RequestParam("file") MultipartFile document) {
+
+        List<QuestionRequest> extractedQuestions = ocrService.extractQuestionsFromImage(document);
+
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(
                 ApiResponse.success(
-                        "processing....",
-                        null
+                        "Quét OCR thành công!",
+                        extractedQuestions
                 )
         );
     }
