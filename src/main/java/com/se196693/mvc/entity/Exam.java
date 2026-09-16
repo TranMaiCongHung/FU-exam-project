@@ -1,5 +1,6 @@
 package com.se196693.mvc.entity;
 
+import com.se196693.mvc.enums.ExamStatus;
 import com.se196693.mvc.enums.ExamType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -43,6 +44,14 @@ public class Exam {
 
     @Column(nullable = false)
     private String semesterCode;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private ExamStatus status = ExamStatus.DRAFT;
+
+    @Column
+    private String originalDocumentKey;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id")

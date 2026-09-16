@@ -1,7 +1,9 @@
 package com.se196693.mvc.service.impl;
 
 import com.se196693.mvc.dto.request.QuestionRequest;
+import com.se196693.mvc.dto.response.AnswerOptionResponse;
 import com.se196693.mvc.dto.response.QuestionResponse;
+import com.se196693.mvc.entity.AnswerOption;
 import com.se196693.mvc.entity.Exam;
 import com.se196693.mvc.entity.Question;
 import com.se196693.mvc.exception.ResourceNotFoundException;
@@ -64,14 +66,27 @@ public class QuestionServiceImpl implements QuestionService {
 
         fileStorageService.upload(image, objectKey);
 
-        Question savedQuestion = questionRepository.save(
-                Question.builder()
-                        .questionNumber(request.getQuestionNumber())
-                        .objectKey(objectKey)
-                        .exam(exam)
-                        .questionType(request.getQuestionType())
-                        .build()
-        );
+        Question question = Question.builder()
+                .questionNumber(request.getQuestionNumber())
+                .objectKey(objectKey)
+                .exam(exam)
+                .questionType(request.getQuestionType())
+                .build();
+
+        if (request.getAnswerOption() != null && request.getAnswerOption().size() > 0) {
+            List<AnswerOption> options = request.getAnswerOption()
+                    .stream()
+                    .map(optionRequest ->
+                            AnswerOption.builder()
+                                    .optionLabel(optionRequest.getOptionLabel())
+                                    .content(optionRequest.getContent())
+                                    .isCorrect(optionRequest.isCorrect())
+                                    .question(question)
+                                    .build())
+                    .toList();
+            question.setAnswerOptions(options);
+        }
+        Question savedQuestion = questionRepository.save(question);
         return convertToQuestion(savedQuestion);
     }
 
@@ -89,11 +104,23 @@ public class QuestionServiceImpl implements QuestionService {
     }
 
     private QuestionResponse convertToQuestion(Question question){
+        List<AnswerOptionResponse> optionResponses = null;
+        if (question.getAnswerOptions() != null && !question.getAnswerOptions().isEmpty()) {
+            optionResponses = question.getAnswerOptions().stream().map(opt ->
+                    AnswerOptionResponse.builder()
+                            .id(opt.getId())
+                            .optionLabel(opt.getOptionLabel())
+                            .content(opt.getContent())
+                            .isCorrect(opt.isCorrect())
+                            .build()
+            ).toList();
+        }
         return QuestionResponse.builder()
                 .id(question.getId())
                 .questionNumber(question.getQuestionNumber())
                 .imageUrl(publicUrl + "/" + question.getObjectKey())
                 .questionType(question.getQuestionType())
+                .answerOption(optionResponses)
                 .build();
     }
 }
