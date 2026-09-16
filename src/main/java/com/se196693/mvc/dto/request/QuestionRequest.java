@@ -12,8 +12,9 @@ public class QuestionRequest {
     @NotNull
     private Integer questionNumber;
 
-    @NotNull
     private MultipartFile image;
+
+    @NotNull String content;
 
     @NotNull
     private QuestionType questionType;
