@@ -22,12 +22,15 @@ public class Question {
     @Column(nullable = false)
     private Integer questionNumber;
 
-    @Column(nullable = false)
+    @Column(nullable = true)
     private String objectKey;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private QuestionType questionType;
+
+    @Column(columnDefinition = "TEXT")
+    private String content;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "exam_id")
