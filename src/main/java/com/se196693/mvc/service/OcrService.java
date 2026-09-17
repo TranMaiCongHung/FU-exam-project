@@ -6,5 +6,5 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface OcrService {
-    List<QuestionRequest> extractQuestionsFromImage(MultipartFile file);
+    List<QuestionRequest> extractQuestionsFromImage(List<MultipartFile> file);
 }

@@ -9,6 +9,7 @@ import com.se196693.mvc.dto.response.PageResponse;
 import com.se196693.mvc.entity.User;
 import com.se196693.mvc.service.ExamService;
 import com.se196693.mvc.service.OcrService;
+import com.se196693.mvc.service.QuestionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
@@ -32,6 +33,7 @@ public class AdminExamController {
     private final ExamService examService;
 
     private final OcrService ocrService;
+    private final QuestionService questionService;
 
     @PostMapping("/{subjectId}")
     public ResponseEntity<ApiResponse<ExamResponse>> createExam(
@@ -59,14 +61,27 @@ public class AdminExamController {
     @PostMapping(value = "/{examId}/extract-ocr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<List<QuestionRequest>>> extractQuestionViaOcr(
             @PathVariable Long examId,
-            @RequestParam("file") MultipartFile document) {
+            @RequestParam("file") List<MultipartFile> document) {
 
-        List<QuestionRequest> extractedQuestions = ocrService.extractQuestionsFromImage(document);
+        List<QuestionRequest> extractedQuestions = examService.extractOcr(examId, document);
 
         return ResponseEntity.status(HttpStatus.ACCEPTED).body(
                 ApiResponse.success(
-                        "Quét OCR thành công!",
+                        "Quét OCR thành công! Vui lòng duyệt lại trước khi lưu.",
                         extractedQuestions
+                )
+        );
+    }
+
+    @PostMapping(value = "/{examId}/questions/bulk")
+    public ResponseEntity<ApiResponse<String>> saveBulkQuestions(
+            @PathVariable Long examId,
+            @RequestBody List<QuestionRequest> questions) {
+        questionService.saveOcrQuestions(examId, questions);
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.success(
+                        "Đã lưu toàn bộ câu hỏi vào hệ thống thành công!",
+                        null
                 )
         );
     }

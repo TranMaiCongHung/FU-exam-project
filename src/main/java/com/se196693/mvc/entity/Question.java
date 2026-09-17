@@ -22,7 +22,7 @@ public class Question {
     @Column(nullable = false)
     private Integer questionNumber;
 
-    @Column(nullable = true)
+    @Column
     private String objectKey;
 
     @Enumerated(EnumType.STRING)

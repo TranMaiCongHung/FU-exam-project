@@ -31,43 +31,40 @@ public class OcrServiceImpl implements OcrService {
     //URL của gg gemini 1.5 flash
     private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
     @Override
-    public List<QuestionRequest> extractQuestionsFromImage(MultipartFile file) {
+    public List<QuestionRequest> extractQuestionsFromImage(List<MultipartFile> files) {
 
         try {
-            /*
-            * chuyển ảnh thành chuỗi base64 ví api của gg không nhận trc tiếp file nhị phân,
-            * bắt buộc file ảnh phải chuyển sang kí tự base64*/
-            String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
-            String mimeType = file.getContentType();
 
             /*
             * prompt cho gemini trả v chuẩn nhuexng gì muốn trả về*/
             String prompt = "Trong ảnh là hình ảnh của một bài thi trắc nghiệm."
-                    + "Hy trích xuất toàn bộ câu hỏi và các câu trả lời có trong hình, dựa vào câu hỏi và đáp án, hãy chọn ra các đáp án chính xác, câu 1 đáp án thì chọn 1, câu nhiều đáp án thì trả về nhiều đáp án đúng, bỏ qua các chi tiết khác không liên quan."
+                    + "Hãy trích xuất toàn bộ câu hỏi và các câu trả lời có trong hình, dựa vào câu hỏi và đáp án, hãy chọn ra các đáp án chính xác, câu 1 đáp án thì chọn 1, câu nhiều đáp án thì trả về nhiều đáp án đúng, bỏ qua các chi tiết khác không liên quan."
                     + "KẾT QUẢ TRẢ VỀ BẮT BUỘC PHẢI LÀ ĐỊNH DẠNG JSON ARRAY KHỚP VỚI CẤU TRÚC JAVA SAU, KHÔNG CẦN GIẢI THÍCH GÌ THÊM:"
-                    + "[{ \\\"questionNumber\\\": 1, \\\"content\\\": \\\"Nội dung câu hỏi\\\", \\\"questionType\\\": \\\"SINGLE_CHOICE\\\", \\\"answerOption\\\": [ { \\\"optionLabel\\\": \\\"A\\\", \\\"content\\\": \\\"Đáp án A\\\", \\\"isCorrect\\\": false } ] }]";
+                    + "[{ \\\"questionNumber\\\": 1, \\\"content\\\": \\\"Nội dung câu hỏi\\\", \\\"questionType\\\": \\\"SINGLE_CHOICE\\\", \\\"answerOption\\\": [ { \\\"optionLabel\\\": \\\"A\\\", \\\"content\\\": \\\"Đáp án A\\\", \\\"correct\\\": false } ] }]";
 
-            /*
-            * đóng gói body cho http request (gg yêu cầu body phải có cấu trúc
-            * cố định: contents -> parts -> [text, inlineData])*/
+            // Khởi tạo phần tử đầu tiên của mảng 'parts' chứa câu lệnh text
+            StringBuilder partsBuilder = new StringBuilder();
+            partsBuilder.append("{\"text\": \"").append(prompt).append("\"}");
+
+            // Dùng vòng lặp biến từng ảnh thành Base64 và nối vào mảng 'parts'
+            for (MultipartFile file : files) {
+                String base64Image = Base64.getEncoder().encodeToString(file.getBytes());
+                String mimeType = file.getContentType();
+                partsBuilder.append(String.format(",{\"inlineData\": {\"mimeType\": \"%s\", \"data\": \"%s\"}}", mimeType, base64Image));
+            }
+
+            // Đưa toàn bộ mảng parts vào Request Body
             String requestBody = String.format("""
+                {
+                  "contents": [
                     {
-                        "contents": [
-                            {
-                                "parts": [
-                                    {"text": "%s"},
-                                    {
-                                        "inlineData": {
-                                        "mimeType": "%s",
-                                        "data": "%s"
-                                        }
-                                     }
-                                ]
-                            }
-                        ]
+                      "parts": [
+                        %s
+                      ]
                     }
-                    """, prompt, mimeType, base64Image);
-
+                  ]
+                }
+                """, partsBuilder.toString());
             //tạo http client và gửi request đi
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
