@@ -49,4 +49,12 @@ public class AdminSubjectController {
                 )
         );
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteSubject(@PathVariable Long id) {
+        subjectService.deleteSubject(id);
+        return ResponseEntity.ok(
+                ApiResponse.success("Deleted successfully",null) // Hoặc ApiResponse.success("Deleted successfully", null)
+        );
+    }
 }
