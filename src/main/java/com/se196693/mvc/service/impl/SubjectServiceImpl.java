@@ -3,6 +3,7 @@ package com.se196693.mvc.service.impl;
 import com.se196693.mvc.dto.request.SubjectRequest;
 import com.se196693.mvc.dto.response.SubjectResponse;
 import com.se196693.mvc.entity.Subject;
+import com.se196693.mvc.exception.ResourceNotFoundException;
 import com.se196693.mvc.repository.SubjectRepository;
 import com.se196693.mvc.service.SubjectService;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,19 @@ public class SubjectServiceImpl implements SubjectService {
     public List<SubjectResponse> getSubjectsByTermNumber(Integer termNumber) {
         List<Subject> subjects = subjectRepository.findSubjectsByTermNumber(termNumber);
         return subjects.stream().map(this::convertToResponse).toList();
+    }
+
+    @Override
+    public SubjectResponse updateSubject(Long id, SubjectRequest subjectRequest) {
+        Subject foundSubject = subjectRepository.findById(id).orElseThrow(
+                () -> new ResourceNotFoundException("Subject is not found")
+        );
+
+        foundSubject.setSubjectCode(subjectRequest.getSubjectCode());
+        foundSubject.setSubjectName(subjectRequest.getSubjectName());
+        foundSubject.setTermNumber(subjectRequest.getTermNumber());
+        subjectRepository.save(foundSubject);
+        return convertToResponse(foundSubject);
     }
 
     private SubjectResponse convertToResponse(Subject subject) {

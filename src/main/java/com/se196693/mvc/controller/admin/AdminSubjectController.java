@@ -39,4 +39,14 @@ public class AdminSubjectController {
                 )
         );
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<SubjectResponse>> updateSubject(@PathVariable Long id, @Valid @RequestBody SubjectRequest subjectRequest) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                "Updated successfully",
+                subjectService.updateSubject(id, subjectRequest)
+                )
+        );
+    }
 }
