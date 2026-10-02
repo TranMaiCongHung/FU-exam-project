@@ -1,7 +1,9 @@
 package com.se196693.mvc.service.impl;
 
+import com.se196693.mvc.dto.request.CheckAnswerRequest;
 import com.se196693.mvc.dto.request.QuestionRequest;
 import com.se196693.mvc.dto.response.AnswerOptionResponse;
+import com.se196693.mvc.dto.response.CheckAnswerResponse;
 import com.se196693.mvc.dto.response.QuestionResponse;
 import com.se196693.mvc.entity.AnswerOption;
 import com.se196693.mvc.entity.Exam;
@@ -100,8 +102,38 @@ public class QuestionServiceImpl implements QuestionService {
 
         List<Question> questions = questionRepository.findByExamIdOrderByQuestionNumberAsc(examId);
 
-        return questions.stream().map(this::convertToQuestion).toList();
+        return questions.stream().map(this::convertToUserQuestion).toList();
     }
+    @Override
+    public CheckAnswerResponse checkAnswer(Long examId, Long questionId, CheckAnswerRequest request) {
+        if (!examRepository.existsById(examId)) {
+            throw new ResourceNotFoundException("Exam not found");
+        }
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
+
+        if (!question.getExam().getId().equals(examId)) {
+            throw new IllegalArgumentException("Question does not belong to this exam");
+        }
+
+        List<Long> correctOptionIds = question.getAnswerOptions().stream()
+                .filter(AnswerOption::isCorrect)
+                .map(AnswerOption::getId)
+                .toList();
+
+        List<Long> selectedIds = request.getSelectedOptionIds() != null
+                ? request.getSelectedOptionIds()
+                : java.util.Collections.emptyList();
+
+        boolean isUserCorrect = correctOptionIds.size() == selectedIds.size() &&
+                correctOptionIds.containsAll(selectedIds);
+
+        return CheckAnswerResponse.builder()
+                .isCorrect(isUserCorrect)
+                .correctOptionIds(correctOptionIds)
+                .build();
+    }
+
 
     private QuestionResponse convertToQuestion(Question question){
         List<AnswerOptionResponse> optionResponses = null;
@@ -123,4 +155,26 @@ public class QuestionServiceImpl implements QuestionService {
                 .answerOption(optionResponses)
                 .build();
     }
+
+    private QuestionResponse convertToUserQuestion(Question question) {
+        List<AnswerOptionResponse> optionResponses = null;
+        if (question.getAnswerOptions() != null && !question.getAnswerOptions().isEmpty()) {
+            optionResponses = question.getAnswerOptions().stream().map(opt ->
+                    AnswerOptionResponse.builder()
+                            .id(opt.getId())
+                            .optionLabel(opt.getOptionLabel())
+                            .content(opt.getContent())
+                            .isCorrect(false)
+                            .build()
+            ).toList();
+        }
+        return QuestionResponse.builder()
+                .id(question.getId())
+                .questionNumber(question.getQuestionNumber())
+                .imageUrl(question.getObjectKey() != null ? publicUrl + "/" + question.getObjectKey() : null)
+                .questionType(question.getQuestionType())
+                .answerOption(optionResponses)
+                .build();
+    }
+
 }
