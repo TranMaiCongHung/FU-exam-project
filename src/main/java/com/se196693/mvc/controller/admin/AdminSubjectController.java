@@ -39,4 +39,22 @@ public class AdminSubjectController {
                 )
         );
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<SubjectResponse>> updateSubject(@PathVariable Long id, @Valid @RequestBody SubjectRequest subjectRequest) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                "Updated successfully",
+                subjectService.updateSubject(id, subjectRequest)
+                )
+        );
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<Void>> deleteSubject(@PathVariable Long id) {
+        subjectService.deleteSubject(id);
+        return ResponseEntity.ok(
+                ApiResponse.success("Deleted successfully",null) // Hoặc ApiResponse.success("Deleted successfully", null)
+        );
+    }
 }

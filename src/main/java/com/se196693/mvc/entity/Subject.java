@@ -1,5 +1,6 @@
 package com.se196693.mvc.entity;
 
+import com.se196693.mvc.enums.SubjectStatus;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -27,6 +28,9 @@ public class Subject {
 
     @Column(nullable = false)
     private Integer termNumber;
+
+    @Column
+    private SubjectStatus status;
 
     @Builder.Default
     @OneToMany(mappedBy = "subject", cascade = CascadeType.ALL, orphanRemoval = true)

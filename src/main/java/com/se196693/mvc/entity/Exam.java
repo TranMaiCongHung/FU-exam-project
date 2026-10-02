@@ -46,7 +46,7 @@ public class Exam {
     private String semesterCode;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = true)
     @Builder.Default
     private ExamStatus status = ExamStatus.DRAFT;
 

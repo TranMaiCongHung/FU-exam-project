@@ -1,5 +1,6 @@
 package com.se196693.mvc.dto.request;
 
+import com.se196693.mvc.enums.SubjectStatus;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
@@ -25,4 +26,6 @@ public class SubjectRequest {
     @NotNull(message = "Term number is required")
     @Range(min = 1, max = 9, message = "Term must be between 1 and 9")
     private Integer termNumber;
+
+    private SubjectStatus status = SubjectStatus.DISABLE;
 }
