@@ -39,4 +39,8 @@ public class Question {
     @Builder.Default
     @OneToMany(mappedBy = "question", cascade = CascadeType.ALL, orphanRemoval = true)
     List<AnswerOption> answerOptions = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "question", cascade = CascadeType.ALL)
+    private List<UserAnswer> userAnswers = new ArrayList<>();
 }

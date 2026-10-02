@@ -64,4 +64,8 @@ public class Exam {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "subject_id")
     private Subject subject;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "exam", cascade = CascadeType.ALL)
+    private List<ExamAttempt> examAttempts = new ArrayList<>();
 }

@@ -55,4 +55,8 @@ public class User {
     @Builder.Default
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Exam> exams = new ArrayList<>();
+
+    @Builder.Default
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<ExamAttempt> examAttempts = new ArrayList<>();
 }
