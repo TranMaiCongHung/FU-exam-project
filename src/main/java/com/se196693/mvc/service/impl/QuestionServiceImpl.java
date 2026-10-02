@@ -1,15 +1,10 @@
 package com.se196693.mvc.service.impl;
 
-import java.util.List;
-import java.util.UUID;
-
-import com.se196693.mvc.dto.request.UpdateQuestionRequest;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
+import com.se196693.mvc.dto.request.CheckAnswerRequest;
 import com.se196693.mvc.dto.request.QuestionRequest;
+import com.se196693.mvc.dto.request.UpdateQuestionRequest;
 import com.se196693.mvc.dto.response.AnswerOptionResponse;
+import com.se196693.mvc.dto.response.CheckAnswerResponse;
 import com.se196693.mvc.dto.response.QuestionResponse;
 import com.se196693.mvc.entity.AnswerOption;
 import com.se196693.mvc.entity.Exam;
@@ -23,6 +18,12 @@ import com.se196693.mvc.service.QuestionService;
 import com.se196693.mvc.utils.FileUtils;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +37,66 @@ public class QuestionServiceImpl implements QuestionService {
     private String publicUrl;
 
     @Override
+    public QuestionResponse addQuestion(Long examId, QuestionRequest request) {
+        Exam exam = examRepository.findById(examId).orElseThrow(
+                () -> new ResourceNotFoundException("Exam with id: " + examId + " not found")
+        );
+
+        MultipartFile image = request.getImage();
+
+        if (image.isEmpty()) {
+            throw new IllegalArgumentException("Image is empty");
+        }
+
+        String contentType = image.getContentType();
+
+        if (!"image/jpeg".equals(contentType)
+                && !"image/png".equals(contentType)
+                && !"image/webp".equals(contentType)) {
+
+            throw new IllegalArgumentException(
+                    "Only JPEG, PNG and WEBP images are allowed"
+            );
+        }
+
+        String extension = FileUtils.getExtension(image.getOriginalFilename());
+
+        String objectKey = "exams/"
+                + examId
+                + "/questions/"
+                + request.getQuestionNumber()
+                + "-"
+                + UUID.randomUUID()
+                + "."
+                + extension;
+
+        fileStorageService.upload(image, objectKey);
+
+        Question question = Question.builder()
+                .questionNumber(request.getQuestionNumber())
+                .objectKey(objectKey)
+                .exam(exam)
+                .questionType(request.getQuestionType())
+                .build();
+
+        if (request.getAnswerOption() != null && request.getAnswerOption().size() > 0) {
+            List<AnswerOption> options = request.getAnswerOption()
+                    .stream()
+                    .map(optionRequest ->
+                            AnswerOption.builder()
+                                    .optionLabel(optionRequest.getOptionLabel())
+                                    .content(optionRequest.getContent())
+                                    .isCorrect(optionRequest.getIsCorrect())
+                                    .question(question)
+                                    .build())
+                    .toList();
+            question.setAnswerOptions(options);
+        }
+        Question savedQuestion = questionRepository.save(question);
+        return convertToQuestion(savedQuestion);
+    }
+
+    @Override
     public List<QuestionResponse> getQuestions(Long examId) {
         if (!examRepository.existsById(examId)) {
             throw new ResourceNotFoundException(
@@ -45,7 +106,7 @@ public class QuestionServiceImpl implements QuestionService {
 
         List<Question> questions = questionRepository.findByExamIdOrderByQuestionNumberAsc(examId);
 
-        return questions.stream().map(this::convertToQuestion).toList();
+        return questions.stream().map(this::convertToUserQuestion).toList();
     }
 
     @Override
@@ -62,11 +123,11 @@ public class QuestionServiceImpl implements QuestionService {
             if (req.getAnswerOption() != null && !req.getAnswerOption().isEmpty()) {
                 List<AnswerOption> options = req.getAnswerOption().stream()
                         .map(optReq -> AnswerOption.builder()
-                        .optionLabel(optReq.getOptionLabel())
-                        .content(optReq.getContent())
-                        .isCorrect(optReq.getIsCorrect() != null ? optReq.getIsCorrect() : false)
-                        .question(question)
-                        .build())
+                                .optionLabel(optReq.getOptionLabel())
+                                .content(optReq.getContent())
+                                .isCorrect(optReq.getIsCorrect() != null ? optReq.getIsCorrect() : false)
+                                .question(question)
+                                .build())
                         .toList();
                 question.setAnswerOptions(options);
             }
@@ -74,7 +135,6 @@ public class QuestionServiceImpl implements QuestionService {
         }
         exam.setStatus(ExamStatus.PUBLISHED);
         examRepository.save(exam);
-
     }
 
     @Override
@@ -163,12 +223,41 @@ public class QuestionServiceImpl implements QuestionService {
         questionRepository.delete(question);
     }
 
+    @Override
+    public CheckAnswerResponse checkAnswer(Long examId, Long questionId, CheckAnswerRequest request) {
+        if (!examRepository.existsById(examId)) {
+            throw new ResourceNotFoundException("Exam not found");
+        }
+        Question question = questionRepository.findById(questionId)
+                .orElseThrow(() -> new ResourceNotFoundException("Question not found"));
+
+        if (!question.getExam().getId().equals(examId)) {
+            throw new IllegalArgumentException("Question does not belong to this exam");
+        }
+
+        List<Long> correctOptionIds = question.getAnswerOptions().stream()
+                .filter(AnswerOption::isCorrect)
+                .map(AnswerOption::getId)
+                .toList();
+
+        List<Long> selectedIds = request.getSelectedOptionIds() != null
+                ? request.getSelectedOptionIds()
+                : java.util.Collections.emptyList();
+
+        boolean isUserCorrect = correctOptionIds.size() == selectedIds.size() &&
+                correctOptionIds.containsAll(selectedIds);
+
+        return CheckAnswerResponse.builder()
+                .isCorrect(isUserCorrect)
+                .correctOptionIds(correctOptionIds)
+                .build();
+    }
 
     private QuestionResponse convertToQuestion(Question question) {
         List<AnswerOptionResponse> optionResponses = null;
         if (question.getAnswerOptions() != null && !question.getAnswerOptions().isEmpty()) {
-            optionResponses = question.getAnswerOptions().stream().map(opt
-                    -> AnswerOptionResponse.builder()
+            optionResponses = question.getAnswerOptions().stream().map(opt ->
+                    AnswerOptionResponse.builder()
                             .id(opt.getId())
                             .optionLabel(opt.getOptionLabel())
                             .content(opt.getContent())
@@ -179,7 +268,28 @@ public class QuestionServiceImpl implements QuestionService {
         return QuestionResponse.builder()
                 .id(question.getId())
                 .questionNumber(question.getQuestionNumber())
-                .imageUrl(publicUrl + "/" + question.getObjectKey())
+                .imageUrl(question.getObjectKey() != null ? publicUrl + "/" + question.getObjectKey() : null)
+                .questionType(question.getQuestionType())
+                .answerOption(optionResponses)
+                .build();
+    }
+
+    private QuestionResponse convertToUserQuestion(Question question) {
+        List<AnswerOptionResponse> optionResponses = null;
+        if (question.getAnswerOptions() != null && !question.getAnswerOptions().isEmpty()) {
+            optionResponses = question.getAnswerOptions().stream().map(opt ->
+                    AnswerOptionResponse.builder()
+                            .id(opt.getId())
+                            .optionLabel(opt.getOptionLabel())
+                            .content(opt.getContent())
+                            .isCorrect(false)
+                            .build()
+            ).toList();
+        }
+        return QuestionResponse.builder()
+                .id(question.getId())
+                .questionNumber(question.getQuestionNumber())
+                .imageUrl(question.getObjectKey() != null ? publicUrl + "/" + question.getObjectKey() : null)
                 .questionType(question.getQuestionType())
                 .answerOption(optionResponses)
                 .build();

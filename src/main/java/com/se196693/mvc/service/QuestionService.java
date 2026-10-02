@@ -1,13 +1,16 @@
 package com.se196693.mvc.service;
 
-import java.util.List;
-
+import com.se196693.mvc.dto.request.CheckAnswerRequest;
 import com.se196693.mvc.dto.request.QuestionRequest;
+import com.se196693.mvc.dto.response.CheckAnswerResponse;
 import com.se196693.mvc.dto.request.UpdateQuestionRequest;
 import com.se196693.mvc.dto.response.QuestionResponse;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 public interface QuestionService {
+    QuestionResponse addQuestion(Long examId, QuestionRequest request);
 
     List<QuestionResponse> getQuestions(Long examId);
 
@@ -18,5 +21,7 @@ public interface QuestionService {
     QuestionResponse updateQuestion(Long examId, Long questionId, UpdateQuestionRequest request);
 
     void deleteQuestion(Long examId, Long questionId);
+
+    CheckAnswerResponse checkAnswer(Long examId, Long questionId, CheckAnswerRequest request);
 
 }
