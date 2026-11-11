@@ -64,6 +64,7 @@ public class SubjectServiceImpl implements SubjectService {
 
     private SubjectResponse convertToResponse(Subject subject) {
         return SubjectResponse.builder()
+                .id(subject.getId())
                 .subjectCode(subject.getSubjectCode())
                 .subjectName(subject.getSubjectName())
                 .termNumber(subject.getTermNumber())

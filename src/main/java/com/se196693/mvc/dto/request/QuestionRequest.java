@@ -14,6 +14,9 @@ public class QuestionRequest {
 
     private MultipartFile image;
 
+    private String objectKey;
+    private String imageUrl;
+
     @NotNull
     private String content;
 

@@ -13,9 +13,10 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class QuestionResponse {
-    Long id;
-    Integer questionNumber;
-    String imageUrl;
-    QuestionType questionType;
+    private Long id;
+    private Integer questionNumber;
+    private String imageUrl;
+    private String content;
+    private QuestionType questionType;
     private List<AnswerOptionResponse> answerOption;
 }

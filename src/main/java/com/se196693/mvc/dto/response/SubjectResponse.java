@@ -8,6 +8,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SubjectResponse {
+    private Long id;
     private String subjectCode;
 
     private String subjectName;
