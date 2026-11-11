@@ -87,4 +87,17 @@ public class AdminExamController {
                 )
         );
     }
+
+    @PatchMapping("/{examId}/visibility")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<ExamResponse>> updateExamVisibility(
+            @PathVariable Long examId,
+            @RequestParam(required = false) Boolean visible) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Updated exam visibility successfully",
+                        examService.updateVisibility(examId, visible)
+                )
+        );
+    }
 }

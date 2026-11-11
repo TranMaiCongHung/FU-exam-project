@@ -4,5 +4,6 @@ public enum ExamStatus {
     DRAFT,
     PROCESSING,
     REVIEW,
-    PUBLISHED
+    PUBLISHED,
+    HIDDEN
 }

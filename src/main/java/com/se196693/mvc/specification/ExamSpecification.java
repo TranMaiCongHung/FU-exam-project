@@ -1,6 +1,7 @@
 package com.se196693.mvc.specification;
 
 import com.se196693.mvc.entity.Exam;
+import com.se196693.mvc.enums.ExamStatus;
 import com.se196693.mvc.enums.ExamType;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -23,6 +24,14 @@ public class ExamSpecification {
                 return null;
             }
             return criteriaBuilder.equal(root.get("examType"), examType);
+        };
+    }
+    public static Specification<Exam> hasStatus(ExamStatus status) {
+        return (root, query, criteriaBuilder) -> {
+            if (status == null) {
+                return null;
+            }
+            return criteriaBuilder.equal(root.get("status"), status);
         };
     }
 }
