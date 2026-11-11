@@ -1,4 +1,4 @@
-package com.se196693.mvc.controller;
+package com.se196693.mvc.controller.admin;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
