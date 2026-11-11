@@ -4,6 +4,8 @@ import com.se196693.mvc.enums.ExamType;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Builder
 @AllArgsConstructor
@@ -14,4 +16,5 @@ public class ExamResponse {
     private String description;
     private ExamType examType;
     private String semesterCode;
+    private LocalDateTime createdAt;
 }

@@ -126,6 +126,7 @@ public class ExamServiceImpl implements ExamService {
                 .description(exam.getDescription())
                 .semesterCode(exam.getSemesterCode())
                 .examType(exam.getExamType())
+                .createdAt(exam.getCreatedAt())
                 .build();
     }
 }
