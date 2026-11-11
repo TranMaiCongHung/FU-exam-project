@@ -4,10 +4,13 @@ import com.se196693.mvc.dto.request.CheckAnswerRequest;
 import com.se196693.mvc.dto.request.SubmitExamRequest;
 import com.se196693.mvc.dto.response.*;
 import com.se196693.mvc.entity.*;
+import com.se196693.mvc.enums.ExamStatus;
 import com.se196693.mvc.exception.ResourceNotFoundException;
 import com.se196693.mvc.repository.*;
 import com.se196693.mvc.service.PracticeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +33,13 @@ public class PracticeServiceImpl implements PracticeService {
     public ExamAttemptResponse startPractice(Long examId, String username) {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        boolean isAdmin = auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+
+        if (!isAdmin && exam.getStatus() != ExamStatus.PUBLISHED) {
+            throw new ResourceNotFoundException("Exam not found");
+        }
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 

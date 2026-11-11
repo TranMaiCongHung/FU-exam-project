@@ -19,4 +19,5 @@ public interface ExamService {
 
     List<QuestionRequest> extractOcr(Long examId, List<MultipartFile> documents);
 
+    ExamResponse updateVisibility(Long examId, Boolean visible);
 }

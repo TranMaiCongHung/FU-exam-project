@@ -9,6 +9,7 @@ import com.se196693.mvc.dto.response.QuestionResponse;
 import com.se196693.mvc.entity.Exam;
 import com.se196693.mvc.entity.Subject;
 import com.se196693.mvc.entity.User;
+import com.se196693.mvc.enums.ExamStatus;
 import com.se196693.mvc.exception.ResourceNotFoundException;
 import com.se196693.mvc.repository.ExamRepository;
 import com.se196693.mvc.repository.QuestionRepository;
@@ -24,6 +25,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -65,9 +68,13 @@ public class ExamServiceImpl implements ExamService {
 
     @Override
     public PageResponse<ExamResponse> getExams(ExamFilterRequest examFilterRequest, Pageable pageable) {
+        ExamStatus effectiveStatus = isAdmin()
+                ? examFilterRequest.getStatus()
+                : ExamStatus.PUBLISHED;
         Specification<Exam> specification = Specification
                 .where(ExamSpecification.hasSubject(examFilterRequest.getSubjectId()))
-                .and(ExamSpecification.hasType(examFilterRequest.getExamType()));
+                .and(ExamSpecification.hasType(examFilterRequest.getExamType()))
+                .and(ExamSpecification.hasStatus(effectiveStatus));
 
         Page<Exam> examPage = examRepository.findAll(specification, pageable);
         List<ExamResponse> content = examPage
@@ -119,6 +126,24 @@ public class ExamServiceImpl implements ExamService {
         return allExtractedQuestions;
     }
 
+    @Override
+    public ExamResponse updateVisibility(Long examId, Boolean visible) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+
+        if (visible != null) {
+            exam.setStatus(visible ? ExamStatus.PUBLISHED : ExamStatus.HIDDEN);
+        } else {
+            // Không truyền visible thì tự đảo trạng thái
+            exam.setStatus(exam.getStatus() == ExamStatus.PUBLISHED
+                    ? ExamStatus.HIDDEN
+                    : ExamStatus.PUBLISHED);
+        }
+
+        Exam saved = examRepository.save(exam);
+        return convertToResponse(saved);
+    }
+
     private ExamResponse convertToResponse(Exam exam){
         return ExamResponse.builder()
                 .id(exam.getId())
@@ -127,6 +152,13 @@ public class ExamServiceImpl implements ExamService {
                 .semesterCode(exam.getSemesterCode())
                 .examType(exam.getExamType())
                 .createdAt(exam.getCreatedAt())
+                .status(exam.getStatus())
                 .build();
+    }
+
+    private boolean isAdmin() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 }
