@@ -88,26 +88,40 @@ public class ExamServiceImpl implements ExamService {
         Exam exam = examRepository.findById(examId).orElseThrow(
                 () -> new ResourceNotFoundException("Exam not found")
         );
-        // 1. LƯU TẤT CẢ FILE ẢNH GỐC LÊN S3
-        StringBuilder savedKeys = new StringBuilder();
+
+        List<QuestionRequest> allExtractedQuestions = new java.util.ArrayList<>();
+
+        // Xử lý từng file ảnh (đảm bảo câu hỏi thuộc ảnh nào sẽ gắn liền với ảnh đó)
         for (MultipartFile doc : documents) {
             String extension = FileUtils.getExtension(doc.getOriginalFilename());
             String originalObjectKey = "exams/" + examId + "/original-" + java.util.UUID.randomUUID() + "." + extension;
-            fileStorageService.upload(doc, originalObjectKey);
-            if (!savedKeys.isEmpty()) savedKeys.append(",");
-            savedKeys.append(originalObjectKey);
+
+            // 1. Upload lên R2/S3 và lấy URL ảnh
+            String imageUrl = fileStorageService.upload(doc, originalObjectKey);
+
+            // 2. Gọi Gemini OCR bóc tách câu hỏi từ bức ảnh này
+            List<QuestionRequest> questionsFromDoc = ocrService.extractQuestionsFromImage(List.of(doc));
+
+            // 3. Gán chính xác objectKey và imageUrl vào từng câu hỏi
+            if (questionsFromDoc != null) {
+                for (QuestionRequest q : questionsFromDoc) {
+                    q.setObjectKey(originalObjectKey);
+                    q.setImageUrl(imageUrl);
+                }
+                allExtractedQuestions.addAll(questionsFromDoc);
+            }
         }
-        // Cập nhật link ảnh gốc và đổi trạng thái bài thi thành Đang chờ duyệt
-        exam.setOriginalDocumentKey(savedKeys.toString());
+
+        // Đổi trạng thái bài thi sang REVIEW
         exam.setStatus(com.se196693.mvc.enums.ExamStatus.REVIEW);
         examRepository.save(exam);
 
-        // 2. BÓC TÁCH BẰNG AI VÀ TRẢ VỀ (Tuyệt đối KHÔNG gọi hàm saveOcrQuestions ở đây)
-        return ocrService.extractQuestionsFromImage(documents);
+        return allExtractedQuestions;
     }
 
     private ExamResponse convertToResponse(Exam exam){
         return ExamResponse.builder()
+                .id(exam.getId())
                 .title(exam.getTitle())
                 .description(exam.getDescription())
                 .semesterCode(exam.getSemesterCode())

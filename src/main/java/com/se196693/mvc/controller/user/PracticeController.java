@@ -1,6 +1,7 @@
 package com.se196693.mvc.controller.user;
 
 import com.se196693.mvc.dto.request.CheckAnswerRequest;
+import com.se196693.mvc.dto.request.SubmitExamRequest;
 import com.se196693.mvc.dto.response.*;
 import com.se196693.mvc.service.PracticeService;
 import lombok.RequiredArgsConstructor;
@@ -12,7 +13,6 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/practice")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('USER')") // Chỉ user đã đăng nhập mới được thi
 public class PracticeController {
 
     private final PracticeService practiceService;
@@ -48,6 +48,27 @@ public class PracticeController {
         return ResponseEntity.ok(ApiResponse.success(
                 "Practice finished",
                 practiceService.finishPractice(attemptId)
+        ));
+    }
+
+    @PostMapping("/attempts/{attemptId}/submit")
+    public ResponseEntity<ApiResponse<ExamReviewResponse>> submitPractice(
+            @PathVariable Long attemptId,
+            @RequestBody SubmitExamRequest request) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Exam submitted successfully",
+                practiceService.submitAndFinishPractice(attemptId, request)
+        ));
+    }
+
+    @GetMapping("/attempts/{attemptId}/review")
+    public ResponseEntity<ApiResponse<ExamReviewResponse>> getAttemptReview(
+            @PathVariable Long attemptId) {
+
+        return ResponseEntity.ok(ApiResponse.success(
+                "Fetched exam review successfully",
+                practiceService.getAttemptReview(attemptId)
         ));
     }
 }

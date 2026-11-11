@@ -1,5 +1,13 @@
 package com.se196693.mvc.service.impl;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
 import com.se196693.mvc.dto.request.CheckAnswerRequest;
 import com.se196693.mvc.dto.request.QuestionRequest;
 import com.se196693.mvc.dto.request.UpdateQuestionRequest;
@@ -18,12 +26,6 @@ import com.se196693.mvc.service.QuestionService;
 import com.se196693.mvc.utils.FileUtils;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
-
-import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -74,6 +76,7 @@ public class QuestionServiceImpl implements QuestionService {
 
         Question question = Question.builder()
                 .questionNumber(request.getQuestionNumber())
+                .content(request.getContent())
                 .objectKey(objectKey)
                 .exam(exam)
                 .questionType(request.getQuestionType())
@@ -82,13 +85,13 @@ public class QuestionServiceImpl implements QuestionService {
         if (request.getAnswerOption() != null && request.getAnswerOption().size() > 0) {
             List<AnswerOption> options = request.getAnswerOption()
                     .stream()
-                    .map(optionRequest ->
-                            AnswerOption.builder()
-                                    .optionLabel(optionRequest.getOptionLabel())
-                                    .content(optionRequest.getContent())
-                                    .isCorrect(optionRequest.getIsCorrect())
-                                    .question(question)
-                                    .build())
+                    .map(optionRequest
+                            -> AnswerOption.builder()
+                            .optionLabel(optionRequest.getOptionLabel())
+                            .content(optionRequest.getContent())
+                            .isCorrect(optionRequest.getIsCorrect())
+                            .question(question)
+                            .build())
                     .toList();
             question.setAnswerOptions(options);
         }
@@ -106,20 +109,41 @@ public class QuestionServiceImpl implements QuestionService {
 
         List<Question> questions = questionRepository.findByExamIdOrderByQuestionNumberAsc(examId);
 
-        return questions.stream().map(this::convertToUserQuestion).toList();
+        return questions.stream().map(this::convertToQuestion).toList();
     }
 
+    @Transactional
     @Override
     public void saveOcrQuestions(Long examId, List<QuestionRequest> ocrQuestions) {
-        Exam exam = examRepository.findById(examId).orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+
+        // 1. CHỐNG NHÂN ĐÔI: Xóa toàn bộ câu hỏi cũ của đề thi trước khi lưu danh sách mới
+        List<Question> existingQuestions = questionRepository.findByExamIdOrderByQuestionNumberAsc(examId);
+        if (!existingQuestions.isEmpty()) {
+            questionRepository.deleteAll(existingQuestions);
+            if (exam.getQuestions() != null) {
+                exam.getQuestions().clear();
+            }
+        }
+
+        // 2. CHỐNG LỆCH ẢNH: Gán đúng objectKey của từng câu hỏi
         for (QuestionRequest req : ocrQuestions) {
+            String objectKey = req.getObjectKey();
+
+            // Cơ chế phòng thủ: nếu FE chỉ gửi imageUrl (hoặc khi load từ DB lên rồi save lại)
+            if ((objectKey == null || objectKey.isBlank()) && req.getImageUrl() != null) {
+                objectKey = extractKeyFromImageUrl(req.getImageUrl());
+            }
+
             Question question = Question.builder()
                     .questionNumber(req.getQuestionNumber())
                     .content(req.getContent())
-                    .objectKey(null) // Lặp lại: Vì OCR bóc chữ nên không có ảnh cắt lẻ từng câu
+                    .objectKey(objectKey)
                     .questionType(req.getQuestionType())
                     .exam(exam)
                     .build();
+
             if (req.getAnswerOption() != null && !req.getAnswerOption().isEmpty()) {
                 List<AnswerOption> options = req.getAnswerOption().stream()
                         .map(optReq -> AnswerOption.builder()
@@ -133,8 +157,18 @@ public class QuestionServiceImpl implements QuestionService {
             }
             questionRepository.save(question);
         }
+
         exam.setStatus(ExamStatus.PUBLISHED);
         examRepository.save(exam);
+    }
+
+    // Hàm phụ trợ: Bóc tách objectKey từ URL CDN nếu cần
+    private String extractKeyFromImageUrl(String url) {
+        if (url == null || url.isBlank()) return null;
+        if (url.contains("exams/")) {
+            return url.substring(url.indexOf("exams/"));
+        }
+        return url;
     }
 
     @Override
@@ -195,11 +229,11 @@ public class QuestionServiceImpl implements QuestionService {
         if (request.getAnswerOption() != null && !request.getAnswerOption().isEmpty()) {
             List<AnswerOption> updatedOptions = request.getAnswerOption().stream()
                     .map(optReq -> AnswerOption.builder()
-                            .optionLabel(optReq.getOptionLabel())
-                            .content(optReq.getContent())
-                            .isCorrect(optReq.getIsCorrect() != null ? optReq.getIsCorrect() : false)
-                            .question(question)
-                            .build())
+                    .optionLabel(optReq.getOptionLabel())
+                    .content(optReq.getContent())
+                    .isCorrect(optReq.getIsCorrect() != null ? optReq.getIsCorrect() : false)
+                    .question(question)
+                    .build())
                     .toList();
             question.getAnswerOptions().addAll(updatedOptions);
         }
@@ -244,8 +278,8 @@ public class QuestionServiceImpl implements QuestionService {
                 ? request.getSelectedOptionIds()
                 : java.util.Collections.emptyList();
 
-        boolean isUserCorrect = correctOptionIds.size() == selectedIds.size() &&
-                correctOptionIds.containsAll(selectedIds);
+        boolean isUserCorrect = correctOptionIds.size() == selectedIds.size()
+                && correctOptionIds.containsAll(selectedIds);
 
         return CheckAnswerResponse.builder()
                 .isCorrect(isUserCorrect)
@@ -256,8 +290,8 @@ public class QuestionServiceImpl implements QuestionService {
     private QuestionResponse convertToQuestion(Question question) {
         List<AnswerOptionResponse> optionResponses = null;
         if (question.getAnswerOptions() != null && !question.getAnswerOptions().isEmpty()) {
-            optionResponses = question.getAnswerOptions().stream().map(opt ->
-                    AnswerOptionResponse.builder()
+            optionResponses = question.getAnswerOptions().stream().map(opt
+                    -> AnswerOptionResponse.builder()
                             .id(opt.getId())
                             .optionLabel(opt.getOptionLabel())
                             .content(opt.getContent())
@@ -267,6 +301,7 @@ public class QuestionServiceImpl implements QuestionService {
         }
         return QuestionResponse.builder()
                 .id(question.getId())
+                .content(question.getContent())
                 .questionNumber(question.getQuestionNumber())
                 .imageUrl(question.getObjectKey() != null ? publicUrl + "/" + question.getObjectKey() : null)
                 .questionType(question.getQuestionType())
@@ -277,8 +312,8 @@ public class QuestionServiceImpl implements QuestionService {
     private QuestionResponse convertToUserQuestion(Question question) {
         List<AnswerOptionResponse> optionResponses = null;
         if (question.getAnswerOptions() != null && !question.getAnswerOptions().isEmpty()) {
-            optionResponses = question.getAnswerOptions().stream().map(opt ->
-                    AnswerOptionResponse.builder()
+            optionResponses = question.getAnswerOptions().stream().map(opt
+                    -> AnswerOptionResponse.builder()
                             .id(opt.getId())
                             .optionLabel(opt.getOptionLabel())
                             .content(opt.getContent())
@@ -288,6 +323,7 @@ public class QuestionServiceImpl implements QuestionService {
         }
         return QuestionResponse.builder()
                 .id(question.getId())
+                .content(question.getContent())
                 .questionNumber(question.getQuestionNumber())
                 .imageUrl(question.getObjectKey() != null ? publicUrl + "/" + question.getObjectKey() : null)
                 .questionType(question.getQuestionType())

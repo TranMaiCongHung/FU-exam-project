@@ -9,6 +9,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ExamResponse {
+    private Long id;
     private String title;
     private String description;
     private ExamType examType;

@@ -1,6 +1,7 @@
 package com.se196693.mvc.controller.auth;
 
 import com.se196693.mvc.dto.request.LoginRequest;
+import com.se196693.mvc.dto.request.RefreshTokenRequest;
 import com.se196693.mvc.dto.request.RegisterRequest;
 import com.se196693.mvc.dto.response.ApiResponse;
 import com.se196693.mvc.dto.response.LoginResponse;
@@ -42,6 +43,20 @@ public class AuthController {
                 ApiResponse.created(
                         "User registered successfully",
                         userService.createUser(request))
+        );
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<ApiResponse<LoginResponse>> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Token refreshed successfully", authService.refreshToken(request))
+        );
+    }
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<Void>> logout(@Valid @RequestBody RefreshTokenRequest request) {
+        authService.logout(request);
+        return ResponseEntity.ok(
+                ApiResponse.success("Logged out successfully", null)
         );
     }
 }

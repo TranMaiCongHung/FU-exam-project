@@ -28,7 +28,6 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/admin/exams")
 @RequiredArgsConstructor
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminExamController {
     private final ExamService examService;
 
@@ -36,6 +35,7 @@ public class AdminExamController {
     private final QuestionService questionService;
 
     @PostMapping("/{subjectId}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<ExamResponse>> createExam(
             @PathVariable Long subjectId,
             @Valid @RequestBody ExamRequest request, Authentication authentication
@@ -59,6 +59,7 @@ public class AdminExamController {
     }
 
     @PostMapping(value = "/{examId}/extract-ocr", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<QuestionRequest>>> extractQuestionViaOcr(
             @PathVariable Long examId,
             @RequestParam("file") List<MultipartFile> document) {
@@ -74,6 +75,7 @@ public class AdminExamController {
     }
 
     @PostMapping(value = "/{examId}/questions/bulk")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> saveBulkQuestions(
             @PathVariable Long examId,
             @RequestBody List<QuestionRequest> questions) {

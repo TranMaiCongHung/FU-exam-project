@@ -15,12 +15,12 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/subjects")
-@PreAuthorize(("hasRole('ADMIN')"))
 @RequiredArgsConstructor
 public class AdminSubjectController {
     private final SubjectService subjectService;
 
     @PostMapping
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<SubjectResponse>> createSubject(@Valid @RequestBody SubjectRequest subjectRequest) {
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ApiResponse.created(
@@ -41,6 +41,7 @@ public class AdminSubjectController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<SubjectResponse>> updateSubject(@PathVariable Long id, @Valid @RequestBody SubjectRequest subjectRequest) {
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -51,6 +52,7 @@ public class AdminSubjectController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteSubject(@PathVariable Long id) {
         subjectService.deleteSubject(id);
         return ResponseEntity.ok(

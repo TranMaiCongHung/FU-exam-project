@@ -1,6 +1,7 @@
 package com.se196693.mvc.service.impl;
 
 import com.se196693.mvc.dto.request.CheckAnswerRequest;
+import com.se196693.mvc.dto.request.SubmitExamRequest;
 import com.se196693.mvc.dto.response.*;
 import com.se196693.mvc.entity.*;
 import com.se196693.mvc.exception.ResourceNotFoundException;
@@ -102,6 +103,139 @@ public class PracticeServiceImpl implements PracticeService {
                 .score(attempt.getScore())
                 .totalCorrect(attempt.getTotalCorrect())
                 .totalQuestions(attempt.getTotalQuestions())
+                .build();
+    }
+
+    @org.springframework.beans.factory.annotation.Value("${r2.public-url}")
+    private String publicUrl;
+
+    @Override
+    public ExamReviewResponse submitAndFinishPractice(Long attemptId, SubmitExamRequest request) {
+        ExamAttempt attempt = examAttemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Attempt not found"));
+
+        Exam exam = attempt.getExam();
+        List<Question> questions = exam.getQuestions();
+
+        int correctCount = 0;
+
+        // Lưu câu trả lời của từng câu
+        if (request != null && request.getAnswers() != null) {
+            for (Question question : questions) {
+                List<Long> selectedIds = request.getAnswers().getOrDefault(question.getId(), List.of());
+
+                List<Long> correctOptionIds = question.getAnswerOptions().stream()
+                        .filter(AnswerOption::isCorrect)
+                        .map(AnswerOption::getId)
+                        .toList();
+
+                boolean isUserCorrect = !selectedIds.isEmpty()
+                        && correctOptionIds.size() == selectedIds.size()
+                        && correctOptionIds.containsAll(selectedIds);
+
+                if (isUserCorrect) correctCount++;
+
+                String selectedIdsStr = selectedIds.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(","));
+
+                // Cập nhật câu trả lời nếu đã tồn tại, hoặc tạo mới
+                UserAnswer userAnswer = userAnswerRepository.findByExamAttemptIdAndQuestionId(attemptId, question.getId())
+                        .orElse(UserAnswer.builder()
+                                .examAttempt(attempt)
+                                .question(question)
+                                .build());
+
+                userAnswer.setSelectedOptionIds(selectedIdsStr);
+                userAnswer.setCorrect(isUserCorrect);
+                userAnswerRepository.save(userAnswer);
+            }
+        }
+
+        // Cập nhật điểm cho lượt thi
+        attempt.setTotalCorrect(correctCount);
+        float score = attempt.getTotalQuestions() > 0 ? (float) correctCount / attempt.getTotalQuestions() * 10 : 0f;
+        attempt.setScore((float) (Math.round(score * 100.0) / 100.0));
+        attempt.setFinishedAt(LocalDateTime.now());
+        examAttemptRepository.save(attempt);
+
+        // Trả về toàn bộ chi tiết bài làm để người dùng xem lại
+        return getAttemptReview(attemptId);
+    }
+
+    @Override
+    public ExamReviewResponse getAttemptReview(Long attemptId) {
+        ExamAttempt attempt = examAttemptRepository.findById(attemptId)
+                .orElseThrow(() -> new ResourceNotFoundException("Attempt not found"));
+
+        Exam exam = attempt.getExam();
+        List<UserAnswer> userAnswers = userAnswerRepository.findByExamAttemptId(attemptId);
+
+        // Map nhanh questionId -> UserAnswer
+        java.util.Map<Long, UserAnswer> answerMap = userAnswers.stream()
+                .collect(Collectors.toMap(ua -> ua.getQuestion().getId(), ua -> ua, (existing, replacement) -> existing));
+
+        List<QuestionReviewResponse> questionReviews = exam.getQuestions().stream()
+                .sorted(java.util.Comparator.comparing(Question::getQuestionNumber))
+                .map(q -> {
+                    UserAnswer ua = answerMap.get(q.getId());
+
+                    List<Long> selectedIds = java.util.Collections.emptyList();
+                    boolean isCorrect = false;
+
+                    if (ua != null) {
+                        isCorrect = ua.isCorrect();
+                        if (ua.getSelectedOptionIds() != null && !ua.getSelectedOptionIds().isBlank()) {
+                            selectedIds = java.util.Arrays.stream(ua.getSelectedOptionIds().split(","))
+                                    .map(String::trim)
+                                    .filter(s -> !s.isEmpty())
+                                    .map(Long::parseLong)
+                                    .toList();
+                        }
+                    }
+
+                    List<Long> correctOptionIds = q.getAnswerOptions().stream()
+                            .filter(AnswerOption::isCorrect)
+                            .map(AnswerOption::getId)
+                            .toList();
+
+                    List<AnswerOptionResponse> options = q.getAnswerOptions().stream()
+                            .map(opt -> AnswerOptionResponse.builder()
+                                    .id(opt.getId())
+                                    .optionLabel(opt.getOptionLabel())
+                                    .content(opt.getContent())
+                                    .isCorrect(opt.isCorrect())
+                                    .build())
+                            .toList();
+
+                    String fullImageUrl = q.getObjectKey() != null
+                            ? publicUrl.replaceAll("/+$", "") + "/" + q.getObjectKey()
+                            : null;
+
+                    return QuestionReviewResponse.builder()
+                            .questionId(q.getId())
+                            .questionNumber(q.getQuestionNumber())
+                            .content(q.getContent())
+                            .imageUrl(fullImageUrl)
+                            .questionType(q.getQuestionType())
+                            .answerOptions(options)
+                            .userSelectedOptionIds(selectedIds)
+                            .correctOptionIds(correctOptionIds)
+                            .isCorrect(isCorrect)
+                            .build();
+                })
+                .toList();
+
+        return ExamReviewResponse.builder()
+                .attemptId(attempt.getId())
+                .examId(exam.getId())
+                .examTitle(exam.getTitle())
+                .score(attempt.getScore())
+                .totalCorrect(attempt.getTotalCorrect())
+                .totalQuestions(attempt.getTotalQuestions())
+                .startedAt(attempt.getStartedAt())
+                .finishedAt(attempt.getFinishedAt())
+                .questions(questionReviews)
                 .build();
     }
 }
