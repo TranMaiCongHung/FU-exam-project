@@ -144,6 +144,22 @@ public class ExamServiceImpl implements ExamService {
         return convertToResponse(saved);
     }
 
+    @Override
+    public ExamResponse updateAllowViewImage(Long examId, Boolean allowed) {
+        Exam exam = examRepository.findById(examId)
+                .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
+
+        if (allowed != null) {
+            exam.setAllowViewImage(allowed);
+        } else {
+            // Không truyền allowed thì tự đảo trạng thái (null coi như true)
+            exam.setAllowViewImage(Boolean.FALSE.equals(exam.getAllowViewImage()));
+        }
+
+        Exam saved = examRepository.save(exam);
+        return convertToResponse(saved);
+    }
+
     private ExamResponse convertToResponse(Exam exam){
         return ExamResponse.builder()
                 .id(exam.getId())
@@ -153,6 +169,7 @@ public class ExamServiceImpl implements ExamService {
                 .examType(exam.getExamType())
                 .createdAt(exam.getCreatedAt())
                 .status(exam.getStatus())
+                .allowViewImage(!Boolean.FALSE.equals(exam.getAllowViewImage()))
                 .build();
     }
 

@@ -100,4 +100,17 @@ public class AdminExamController {
                 )
         );
     }
+
+    @PatchMapping("/{examId}/view-image")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<ExamResponse>> updateExamAllowViewImage(
+            @PathVariable Long examId,
+            @RequestParam(required = false) Boolean allowed) {
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "Updated exam image viewing permission successfully",
+                        examService.updateAllowViewImage(examId, allowed)
+                )
+        );
+    }
 }
