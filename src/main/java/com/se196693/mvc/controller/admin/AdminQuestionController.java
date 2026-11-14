@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import com.se196693.mvc.dto.request.QuestionRequest;
+import com.se196693.mvc.dto.request.CreateQuestionRequest;
 import com.se196693.mvc.dto.response.ApiResponse;
 import com.se196693.mvc.dto.response.QuestionResponse;
 import com.se196693.mvc.service.QuestionService;
@@ -24,17 +24,18 @@ public class AdminQuestionController {
 
     private final QuestionService questionService;
 
-//    @PostMapping(value = "/{examId}/questions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-//    public ResponseEntity<ApiResponse<QuestionResponse>> addQuestion(
-//            @PathVariable Long examId,
-//            @ModelAttribute QuestionRequest request
-//    ) {
-//        return ResponseEntity.status(HttpStatus.CREATED).body(
-//                ApiResponse.created(
-//                        "Question created successfully",
-//                        questionService.addQuestion(examId, request))
-//        );
-//    }
+    @PostMapping(value = "/{examId}/questions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<QuestionResponse>> addQuestion(
+            @PathVariable Long examId,
+            @Valid @RequestPart("data") CreateQuestionRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile image
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                ApiResponse.created(
+                        "Question created successfully",
+                        questionService.addQuestion(examId, request, image))
+        );
+    }
 
     @PatchMapping(value = "/{examId}/questions/{questionId}/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApiResponse<QuestionResponse>> uploadQuestionImage(
