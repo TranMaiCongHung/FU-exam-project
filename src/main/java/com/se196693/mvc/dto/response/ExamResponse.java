@@ -19,4 +19,5 @@ public class ExamResponse {
     private String semesterCode;
     private LocalDateTime createdAt;
     private ExamStatus status;
+    private Boolean allowViewImage;
 }

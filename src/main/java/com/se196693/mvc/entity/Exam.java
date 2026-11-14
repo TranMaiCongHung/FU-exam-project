@@ -50,6 +50,10 @@ public class Exam {
     @Builder.Default
     private ExamStatus status = ExamStatus.DRAFT;
 
+    @Column(name = "allow_view_image")
+    @Builder.Default
+    private Boolean allowViewImage = true;
+
     @Column
     private String originalDocumentKey;
 
