@@ -50,11 +50,13 @@ public class OcrServiceImpl implements OcrService {
 
             /*
             * prompt cho gemini trả v chuẩn nhuexng gì muốn trả về*/
-            String prompt = "Trong ảnh là hình ảnh của một bài thi trắc nghiệm."
-                    + "Hãy trích xuất toàn bộ câu hỏi và các câu trả lời có trong hình, dựa vào câu hỏi và đáp án, hãy chọn ra các đáp án chính xác, câu 1 đáp án thì chọn 1, câu nhiều đáp án thì trả về nhiều đáp án đúng, bỏ qua các chi tiết khác không liên quan."
-                    + " Nếu có chú thích số lượng đáp án cần chọn (ví dụ Choose 1 answer -> SINGLE_CHOICE; Choose 2/3/... answers -> MULTIPLE_CHOICE) thì dùng đúng questionType tương ứng."
-                    + "KẾT QUẢ TRẢ VỀ BẮT BUỘC PHẢI LÀ ĐỊNH DẠNG JSON ARRAY KHỚP VỚI CẤU TRÚC JAVA SAU, KHÔNG CẦN GIẢI THÍCH GÌ THÊM:"
-                    + "[{ \\\"questionNumber\\\": 1, \\\"content\\\": \\\"Nội dung câu hỏi\\\", \\\"questionType\\\": \\\"SINGLE_CHOICE\\\", \\\"answerOption\\\": [ { \\\"optionLabel\\\": \\\"A\\\", \\\"content\\\": \\\"Đáp án A\\\", \\\"correct\\\": false } ] }]";
+            String prompt = "The image shows a multiple-choice exam. "
+                    + "Extract all questions and answer options in the image. Based on the question and the options, select the correct answer(s): "
+                    + "for single-answer questions select one, for multiple-answer questions return all correct answers. Ignore any other irrelevant details. "
+                    + "If there is a note on how many answers to choose (e.g. Choose 1 answer -> SINGLE_CHOICE; Choose 2/3/... answers -> MULTIPLE_CHOICE), use the corresponding questionType. "
+                    + "Return ONLY a JSON array matching this Java structure, no explanation. "
+                    + "Return minified JSON on a single line, no line breaks or indentation: "
+                    + "[{\\\"questionNumber\\\":1,\\\"content\\\":\\\"Question content\\\",\\\"questionType\\\":\\\"SINGLE_CHOICE\\\",\\\"answerOption\\\":[{\\\"optionLabel\\\":\\\"A\\\",\\\"content\\\":\\\"Option A\\\",\\\"correct\\\":false}]}]";
 
             // Khởi tạo phần tử đầu tiên của mảng 'parts' chứa câu lệnh text
             StringBuilder partsBuilder = new StringBuilder();
@@ -81,7 +83,10 @@ public class OcrServiceImpl implements OcrService {
         }
       ],
       "generationConfig": {
-        "mediaResolution": "MEDIA_RESOLUTION_MEDIUM"
+        "mediaResolution": "MEDIA_RESOLUTION_MEDIUM",
+        "thinkingConfig": {
+          "thinkingLevel": "medium"
+        }
       }
     }
     """, partsBuilder.toString());
