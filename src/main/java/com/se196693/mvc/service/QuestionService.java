@@ -1,6 +1,7 @@
 package com.se196693.mvc.service;
 
 import com.se196693.mvc.dto.request.CheckAnswerRequest;
+import com.se196693.mvc.dto.request.CreateQuestionRequest;
 import com.se196693.mvc.dto.request.QuestionRequest;
 import com.se196693.mvc.dto.response.CheckAnswerResponse;
 import com.se196693.mvc.dto.request.UpdateQuestionRequest;
@@ -10,7 +11,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface QuestionService {
-    QuestionResponse addQuestion(Long examId, QuestionRequest request);
+    QuestionResponse addQuestion(Long examId, CreateQuestionRequest request, MultipartFile image);
 
     List<QuestionResponse> getQuestions(Long examId);
 

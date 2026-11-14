@@ -1,6 +1,9 @@
 package com.se196693.mvc.service.impl;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -11,6 +14,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.se196693.mvc.dto.request.CheckAnswerRequest;
+import com.se196693.mvc.dto.request.AnswerOptionRequest;
+import com.se196693.mvc.dto.request.CreateQuestionRequest;
 import com.se196693.mvc.dto.request.QuestionRequest;
 import com.se196693.mvc.dto.request.UpdateQuestionRequest;
 import com.se196693.mvc.dto.response.AnswerOptionResponse;
@@ -20,6 +25,8 @@ import com.se196693.mvc.entity.AnswerOption;
 import com.se196693.mvc.entity.Exam;
 import com.se196693.mvc.entity.Question;
 import com.se196693.mvc.enums.ExamStatus;
+import com.se196693.mvc.enums.QuestionType;
+import com.se196693.mvc.exception.DuplicateResourceException;
 import com.se196693.mvc.exception.ResourceNotFoundException;
 import com.se196693.mvc.repository.ExamRepository;
 import com.se196693.mvc.repository.QuestionRepository;
@@ -28,7 +35,9 @@ import com.se196693.mvc.service.QuestionService;
 import com.se196693.mvc.utils.FileUtils;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class QuestionServiceImpl implements QuestionService {
@@ -40,65 +49,120 @@ public class QuestionServiceImpl implements QuestionService {
     @Value("${r2.public-url}")
     private String publicUrl;
 
+    @Transactional
     @Override
-    public QuestionResponse addQuestion(Long examId, QuestionRequest request) {
+    public QuestionResponse addQuestion(Long examId, CreateQuestionRequest request, MultipartFile image) {
         Exam exam = examRepository.findById(examId).orElseThrow(
                 () -> new ResourceNotFoundException("Exam with id: " + examId + " not found")
         );
 
-        MultipartFile image = request.getImage();
-
-        if (image.isEmpty()) {
-            throw new IllegalArgumentException("Image is empty");
+        boolean hasImage = image != null && !image.isEmpty();
+        if (hasImage) {
+            validateImage(image);
         }
 
-        String contentType = image.getContentType();
-
-        if (!"image/jpeg".equals(contentType)
-                && !"image/png".equals(contentType)
-                && !"image/webp".equals(contentType)) {
-
-            throw new IllegalArgumentException(
-                    "Only JPEG, PNG and WEBP images are allowed"
-            );
+        String content = request.getContent();
+        boolean hasContent = content != null && !content.isBlank();
+        if (!hasContent && !hasImage) {
+            throw new IllegalArgumentException("Question must have content or image");
         }
 
-        String extension = FileUtils.getExtension(image.getOriginalFilename());
+        validateAnswerOptions(request.getQuestionType(), request.getAnswerOption());
 
-        String objectKey = "exams/"
-                + examId
-                + "/questions/"
-                + request.getQuestionNumber()
-                + "-"
-                + UUID.randomUUID()
-                + "."
-                + extension;
+        Integer questionNumber = request.getQuestionNumber();
+        if (questionNumber == null) {
+            questionNumber = questionRepository.findMaxQuestionNumberByExamId(examId) + 1;
+        } else if (questionRepository.existsByExamIdAndQuestionNumber(examId, questionNumber)) {
+            throw new DuplicateResourceException(
+                    "Question number " + questionNumber + " already exists in this exam");
+        }
 
-        fileStorageService.upload(image, objectKey);
+        String objectKey = null;
+        if (hasImage) {
+            objectKey = buildObjectKey(examId, questionNumber, image.getOriginalFilename());
+            fileStorageService.upload(image, objectKey);
+        }
 
         Question question = Question.builder()
-                .questionNumber(request.getQuestionNumber())
-                .content(request.getContent())
+                .questionNumber(questionNumber)
+                .content(hasContent ? content.trim() : null)
                 .objectKey(objectKey)
                 .exam(exam)
                 .questionType(request.getQuestionType())
                 .build();
+        question.setAnswerOptions(buildOptions(request.getAnswerOption(), question));
 
-        if (request.getAnswerOption() != null && request.getAnswerOption().size() > 0) {
-            List<AnswerOption> options = request.getAnswerOption()
-                    .stream()
-                    .map(optionRequest
-                            -> AnswerOption.builder()
-                            .optionLabel(optionRequest.getOptionLabel())
-                            .content(optionRequest.getContent())
-                            .isCorrect(optionRequest.getIsCorrect())
-                            .question(question)
-                            .build())
-                    .toList();
-            question.setAnswerOptions(options);
+        try {
+            Question savedQuestion = questionRepository.saveAndFlush(question);
+            return convertToQuestion(savedQuestion);
+        } catch (RuntimeException e) {
+            if (objectKey != null) {
+                try {
+                    fileStorageService.delete(objectKey);
+                } catch (Exception deleteError) {
+                    log.warn("Failed to clean up uploaded image {}: {}", objectKey, deleteError.getMessage());
+                }
+            }
+            throw e;
         }
-        Question savedQuestion = questionRepository.save(question);
-        return convertToQuestion(savedQuestion);
+    }
+
+    private void validateImage(MultipartFile image) {
+        if (image == null || image.isEmpty()) {
+            throw new IllegalArgumentException("Image is empty");
+        }
+        String contentType = image.getContentType();
+        if (!"image/jpeg".equals(contentType)
+                && !"image/png".equals(contentType)
+                && !"image/webp".equals(contentType)) {
+            throw new IllegalArgumentException("Only JPEG, PNG and WEBP images are allowed");
+        }
+    }
+
+    private String buildObjectKey(Long examId, Integer questionNumber, String originalFilename) {
+        String extension = FileUtils.getExtension(originalFilename);
+        return "exams/" + examId + "/questions/" + questionNumber + "-" + UUID.randomUUID() + "." + extension;
+    }
+
+    private void validateAnswerOptions(QuestionType type, List<AnswerOptionRequest> options) {
+        if (options == null || options.size() < 2) {
+            throw new IllegalArgumentException("Question must have at least 2 answer options");
+        }
+        Set<String> labels = new HashSet<>();
+        long correctCount = 0;
+        for (AnswerOptionRequest opt : options) {
+            if (opt.getOptionLabel() == null || opt.getOptionLabel().isBlank()) {
+                throw new IllegalArgumentException("Answer option label must not be blank");
+            }
+            if (!labels.add(opt.getOptionLabel().trim().toLowerCase())) {
+                throw new IllegalArgumentException("Duplicate answer option label: " + opt.getOptionLabel().trim());
+            }
+            if (Boolean.TRUE.equals(opt.getIsCorrect())) {
+                correctCount++;
+            }
+        }
+        if (type == QuestionType.SINGLE_CHOICE && correctCount != 1) {
+            throw new IllegalArgumentException("Single choice question must have exactly 1 correct answer");
+        }
+        if (type == QuestionType.MULTIPLE_CHOICE && correctCount < 1) {
+            throw new IllegalArgumentException("Multiple choice question must have at least 1 correct answer");
+        }
+    }
+
+    private List<AnswerOption> buildOptions(List<AnswerOptionRequest> requests, Question question) {
+        List<AnswerOption> result = new ArrayList<>();
+        if (requests == null) {
+            return result;
+        }
+        for (AnswerOptionRequest opt : requests) {
+            result.add(AnswerOption.builder()
+                    .optionLabel(opt.getOptionLabel())
+                    .content(opt.getContent())
+                    .isCorrect(Boolean.TRUE.equals(opt.getIsCorrect()))
+                    .question(question)
+                    .build());
+        }
+        return result;
     }
 
     @Override
@@ -125,17 +189,42 @@ public class QuestionServiceImpl implements QuestionService {
         Exam exam = examRepository.findById(examId)
                 .orElseThrow(() -> new ResourceNotFoundException("Exam not found"));
 
-        // 1. CHỐNG NHÂN ĐÔI: Xóa toàn bộ câu hỏi cũ của đề thi trước khi lưu danh sách mới
-        List<Question> existingQuestions = questionRepository.findByExamIdOrderByQuestionNumberAsc(examId);
-        if (!existingQuestions.isEmpty()) {
-            questionRepository.deleteAll(existingQuestions);
-            if (exam.getQuestions() != null) {
-                exam.getQuestions().clear();
+        if (ocrQuestions == null || ocrQuestions.isEmpty()) {
+            throw new IllegalArgumentException("Danh sách câu hỏi không được để trống");
+        }
+
+        // 1. Append-only + tự đánh số lại: giữ số câu OCR nếu hợp lệ (>0), chưa có trong DB
+        //    và chưa xuất hiện trước đó trong request; còn lại gán tiếp từ số lớn nhất + 1.
+        Set<Integer> requested = new HashSet<>();
+        for (QuestionRequest req : ocrQuestions) {
+            if (req.getQuestionNumber() != null && req.getQuestionNumber() > 0) {
+                requested.add(req.getQuestionNumber());
+            }
+        }
+        Set<Integer> taken = requested.isEmpty()
+                ? new HashSet<>()
+                : new HashSet<>(questionRepository.findExistingQuestionNumbers(examId, requested));
+
+        List<Integer> assigned = new ArrayList<>(ocrQuestions.size());
+        int maxNumber = questionRepository.findMaxQuestionNumberByExamId(examId);
+        for (QuestionRequest req : ocrQuestions) {
+            Integer number = req.getQuestionNumber();
+            if (number != null && number > 0 && taken.add(number)) {
+                assigned.add(number);
+                maxNumber = Math.max(maxNumber, number);
+            } else {
+                assigned.add(null);
+            }
+        }
+        for (int i = 0; i < assigned.size(); i++) {
+            if (assigned.get(i) == null) {
+                assigned.set(i, ++maxNumber);
             }
         }
 
         // 2. CHỐNG LỆCH ẢNH: Gán đúng objectKey của từng câu hỏi
-        for (QuestionRequest req : ocrQuestions) {
+        for (int i = 0; i < ocrQuestions.size(); i++) {
+            QuestionRequest req = ocrQuestions.get(i);
             String objectKey = req.getObjectKey();
 
             // Cơ chế phòng thủ: nếu FE chỉ gửi imageUrl (hoặc khi load từ DB lên rồi save lại)
@@ -144,7 +233,7 @@ public class QuestionServiceImpl implements QuestionService {
             }
 
             Question question = Question.builder()
-                    .questionNumber(req.getQuestionNumber())
+                    .questionNumber(assigned.get(i))
                     .content(req.getContent())
                     .objectKey(objectKey)
                     .questionType(req.getQuestionType())
@@ -152,15 +241,7 @@ public class QuestionServiceImpl implements QuestionService {
                     .build();
 
             if (req.getAnswerOption() != null && !req.getAnswerOption().isEmpty()) {
-                List<AnswerOption> options = req.getAnswerOption().stream()
-                        .map(optReq -> AnswerOption.builder()
-                                .optionLabel(optReq.getOptionLabel())
-                                .content(optReq.getContent())
-                                .isCorrect(optReq.getIsCorrect() != null ? optReq.getIsCorrect() : false)
-                                .question(question)
-                                .build())
-                        .toList();
-                question.setAnswerOptions(options);
+                question.setAnswerOptions(buildOptions(req.getAnswerOption(), question));
             }
             questionRepository.save(question);
         }
@@ -193,20 +274,10 @@ public class QuestionServiceImpl implements QuestionService {
         }
 
         // 2. Kiểm tra file ảnh hợp lệ
-        if (image == null || image.isEmpty()) {
-            throw new IllegalArgumentException("Image is empty");
-        }
-
-        String contentType = image.getContentType();
-        if (!"image/jpeg".equals(contentType)
-                && !"image/png".equals(contentType)
-                && !"image/webp".equals(contentType)) {
-            throw new IllegalArgumentException("Only JPEG, PNG and WEBP images are allowed");
-        }
+        validateImage(image);
 
         // 3. Đẩy ảnh lên Cloudflare R2
-        String extension = FileUtils.getExtension(image.getOriginalFilename());
-        String objectKey = "exams/" + examId + "/questions/" + question.getQuestionNumber() + "-" + UUID.randomUUID() + "." + extension;
+        String objectKey = buildObjectKey(examId, question.getQuestionNumber(), image.getOriginalFilename());
 
         fileStorageService.upload(image, objectKey);
 
@@ -228,22 +299,20 @@ public class QuestionServiceImpl implements QuestionService {
             throw new IllegalArgumentException("Question does not belong to this exam");
         }
 
+        validateAnswerOptions(request.getQuestionType(), request.getAnswerOption());
+
+        if (!java.util.Objects.equals(question.getQuestionNumber(), request.getQuestionNumber())
+                && questionRepository.existsByExamIdAndQuestionNumber(examId, request.getQuestionNumber())) {
+            throw new DuplicateResourceException(
+                    "Question number " + request.getQuestionNumber() + " already exists in this exam");
+        }
+
         question.setQuestionNumber(request.getQuestionNumber());
         question.setContent(request.getContent());
         question.setQuestionType(request.getQuestionType());
 
         question.getAnswerOptions().clear();
-        if (request.getAnswerOption() != null && !request.getAnswerOption().isEmpty()) {
-            List<AnswerOption> updatedOptions = request.getAnswerOption().stream()
-                    .map(optReq -> AnswerOption.builder()
-                    .optionLabel(optReq.getOptionLabel())
-                    .content(optReq.getContent())
-                    .isCorrect(optReq.getIsCorrect() != null ? optReq.getIsCorrect() : false)
-                    .question(question)
-                    .build())
-                    .toList();
-            question.getAnswerOptions().addAll(updatedOptions);
-        }
+        question.getAnswerOptions().addAll(buildOptions(request.getAnswerOption(), question));
         Question savedQuestion = questionRepository.save(question);
         return convertToQuestion(savedQuestion);
     }
